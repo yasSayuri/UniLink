@@ -159,7 +159,7 @@ export default function Login() {
               </div>
 
               <div className="text-right pt-1">
-                <a href="#" className="text-xs font-semibold text-[#D9A000] lg:text-[#FFC72C] hover:underline">
+                <a href="#" className="text-s font-semibold text-[#D9A000] lg:text-[#FFC72C] hover:underline">
                   Esqueceu sua senha?
                 </a>
               </div>
@@ -179,7 +179,7 @@ export default function Login() {
               <span className="relative z-10 px-3 text-xs text-slate-400 font-medium">ou</span>
             </div>
 
-            <div className="text-center text-xs text-slate-600 pb-6 lg:pb-0">
+            <div className="text-center text-s text-slate-600 pb-6 lg:pb-0">
               Não tem uma conta?{' '}
               <a href="#" className="font-semibold text-[#D9A000] lg:text-[#FFC72C] hover:underline">
                 Cadastre-se
