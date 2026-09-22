@@ -20,7 +20,6 @@ export default function Login() {
     >
       <div className="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-center min-h-screen lg:min-h-0">
         
-        {/* --- DESKTOP LEFT SIDE --- */}
         <div className="hidden lg:flex lg:col-span-7 xl:col-span-7 flex-col justify-between -mt-11 space-y-8 pr-0 lg:pr-2">
           <div className="space-y-5">
             <div className="flex items-center gap-4">
@@ -85,12 +84,18 @@ export default function Login() {
           </div>
         </div>
 
-        {/* --- FORM CONTAINER --- */}
-        <div className="lg:col-span-5 xl:col-span-5 flex justify-center lg:justify-start relative w-full h-full lg:h-auto">
+        <div className="lg:col-span-5 xl:col-span-5 flex justify-center lg:justify-start relative w-full h-full lg:h-auto lg:pt-8 lg:-mt-3">
           
+          <div className="absolute top-[-10px] right-[18px] text-[#FFC72C] hidden sm:block z-20 pointer-events-none">
+            <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="2" x2="12" y2="6"></line>
+              <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+              <line x1="19.07" y1="4.93" x2="16.24" y2="7.76"></line>
+            </svg>
+          </div>
+
           <div className="w-full max-w-md p-6 sm:p-10 lg:p-12 lg:bg-white/95 lg:backdrop-blur-md lg:rounded-3xl lg:shadow-xl lg:border lg:border-white/40 flex flex-col justify-center min-h-screen lg:min-h-[580px]">
             
-            {/* Header Mobile - Logo e Nome BEM MAIORES */}
             <div className="flex lg:hidden items-center justify-center gap-4 mb-8 pt-6">
               <img 
                 src={logoImage} 
@@ -113,7 +118,6 @@ export default function Login() {
             <div className="mb-8 text-left">
               <span className="text-sm text-slate-500 font-medium block mb-2">Bem-vindo(a) de volta!</span>
               
-              {/* Título com o MESMO DEGRADÊ de "Uni" */}
               <h2 className="text-4xl sm:text-4xl font-extrabold tracking-tight leading-[1.15]">
                 <span className="bg-gradient-to-b from-[#525B67] via-[#38414D] to-[#2B323B] bg-clip-text text-transparent">
                   Faça login na<br />sua conta
@@ -173,7 +177,6 @@ export default function Login() {
               </button>
             </form>
 
-            {/* Divisor sem a caixa branca no "ou" */}
             <div className="relative my-8 text-center flex items-center justify-center">
               <div className="w-full border-t border-slate-300/60 absolute inset-0 my-auto" />
               <span className="relative z-10 px-3 text-xs text-slate-400 font-medium">ou</span>
@@ -181,7 +184,7 @@ export default function Login() {
 
             <div className="text-center text-s text-slate-600 pb-6 lg:pb-0">
               Não tem uma conta?{' '}
-              <a href="#" className="font-semibold text-[#D9A000] lg:text-[#FFC72C] hover:underline">
+              <a href="/register" className="font-semibold text-[#D9A000] lg:text-[#FFC72C] hover:underline">
                 Cadastre-se
               </a>
             </div>
