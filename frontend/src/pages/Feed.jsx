@@ -1,10 +1,43 @@
 import {
   Search, Home, MessageSquare, Bell, User, ChevronDown, Image, Video,
   Megaphone, Globe, Compass, Users, Bookmark, Calendar, Building,
-  SlidersHorizontal, School, MapPin, BookOpen, Clock, ThumbsUp, MessageCircle,
-  Share2, Sparkles, Heart
+  SlidersHorizontal, School, MapPin, BookOpen, Clock, Sparkles, Heart
 } from 'lucide-react';
-import logoImage from '../assets/unilink-logo.png'; 
+import UniLinkLogo from '../components/branding/UniLinkLogo';
+import PostCard from '../components/feed/PostCard';
+
+const posts = [
+  {
+    id: 1,
+    author: 'Usuário 1',
+    time: 'Há 2h',
+    course: 'Engenharia de Computação',
+    content: 'Alguém mais também está tendo dificuldade com a matrícula das disciplinas do próximo semestre? Tô tentando desde ontem e não aparece a opção... 🙁',
+    tag: '#matrícula',
+    likes: 12,
+    commentsCount: 8,
+    comment: {
+      author: 'Usuário 2',
+      time: 'Há 1h',
+      content: 'Tenta pelo sistema acadêmico, lá resolveu pra mim!',
+    },
+  },
+  {
+    id: 2,
+    author: 'Usuário 3',
+    time: 'Há 4h',
+    course: 'Direito',
+    content: 'Pessoal, alguém sabe se o RU do campus centro vai funcionar no feriado? Li em algum lugar que ia ter horário reduzido, mas não tenho certeza...',
+    tag: '#ru',
+    likes: 7,
+    commentsCount: 5,
+    comment: {
+      author: 'Usuário 4',
+      time: 'Há 3h',
+      content: 'No último ano funcionou normalmente, mas é bom conferir no site da UTFPR!',
+    },
+  },
+];
 
 export default function Feed() {
   return (
@@ -13,22 +46,7 @@ export default function Feed() {
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200/80 px-4 md:px-8 py-3 flex items-center justify-between shadow-sm">
         
         <div className="flex items-center gap-3">
-          <img 
-            src={logoImage} 
-            alt="UniLink Logo" 
-            className="h-10 w-auto object-contain rounded-xl" 
-          />
-          <span 
-            translate="no" 
-            className="notranslate text-2xl font-black tracking-tight inline-flex items-center"
-          >
-            <span className="bg-gradient-to-b from-[#525B67] via-[#38414D] to-[#2B323B] bg-clip-text text-transparent">
-              Uni
-            </span>
-            <span className="text-[#FFC72C]">
-              Link
-            </span>
-          </span>
+          <UniLinkLogo size="small" />
         </div>
 
         <div className="flex-1 max-w-xl mx-4 md:mx-8">
@@ -169,114 +187,9 @@ export default function Feed() {
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#FFC72C] text-slate-800 flex items-center justify-center font-bold">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800">Usuário 1</h4>
-                  <p className="text-xs text-slate-400">Há 2h • Engenharia de Computação</p>
-                </div>
-              </div>
-              <button className="text-slate-400 hover:text-slate-600 font-bold px-2">•••</button>
-            </div>
-
-            <p className="text-sm text-slate-700 leading-relaxed">
-              Alguém mais também está tendo dificuldade com a matrícula das disciplinas do próximo semestre? Tô tentando desde ontem e não aparece a opção... 🙁
-            </p>
-
-            <span className="inline-block bg-[#FFF8E6] text-[#D9A000] text-xs font-bold px-3 py-1 rounded-lg border border-[#FFE8A3]">
-              #matrícula
-            </span>
-
-            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500 font-medium">
-              <div className="flex items-center gap-4">
-                <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>12</span>
-                </button>
-                <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>8</span>
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="hover:text-slate-800 transition-colors"><Bookmark className="w-4 h-4" /></button>
-                <button className="hover:text-slate-800 transition-colors"><Share2 className="w-4 h-4" /></button>
-              </div>
-            </div>
-
-            <div className="bg-[#F8F9FA] rounded-2xl p-3 flex items-start gap-3 mt-2">
-              <div className="w-7 h-7 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center shrink-0">
-                <User className="w-4 h-4" />
-              </div>
-              <div className="text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800">Usuário 2</span>
-                  <span className="text-slate-400 text-[10px]">Há 1h</span>
-                </div>
-                <p className="text-slate-600 mt-0.5">Tenta pelo sistema acadêmico, lá resolveu pra mim!</p>
-              </div>
-            </div>
-            <button className="text-xs font-bold text-[#D9A000] hover:underline pt-1">Ver mais comentários...</button>
-          </div>
-
-          {/* POST 2 */}
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#FFC72C] text-slate-800 flex items-center justify-center font-bold">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800">Usuário 3</h4>
-                  <p className="text-xs text-slate-400">Há 4h • Direito</p>
-                </div>
-              </div>
-              <button className="text-slate-400 hover:text-slate-600 font-bold px-2">•••</button>
-            </div>
-
-            <p className="text-sm text-slate-700 leading-relaxed">
-              Pessoal, alguém sabe se o RU do campus centro vai funcionar no feriado? Li em algum lugar que ia ter horário reduzido, mas não tenho certeza...
-            </p>
-
-            <span className="inline-block bg-[#FFF8E6] text-[#D9A000] text-xs font-bold px-3 py-1 rounded-lg border border-[#FFE8A3]">
-              #ru
-            </span>
-
-            <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500 font-medium">
-              <div className="flex items-center gap-4">
-                <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>7</span>
-                </button>
-                <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>5</span>
-                </button>
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="hover:text-slate-800 transition-colors"><Bookmark className="w-4 h-4" /></button>
-                <button className="hover:text-slate-800 transition-colors"><Share2 className="w-4 h-4" /></button>
-              </div>
-            </div>
-
-            <div className="bg-[#F8F9FA] rounded-2xl p-3 flex items-start gap-3 mt-2">
-              <div className="w-7 h-7 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center shrink-0">
-                <User className="w-4 h-4" />
-              </div>
-              <div className="text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800">Usuário 4</span>
-                  <span className="text-slate-400 text-[10px]">Há 3h</span>
-                </div>
-                <p className="text-slate-600 mt-0.5">No último ano funcionou normalmente, mas é bom conferir no site da UTFPR!</p>
-              </div>
-            </div>
-            <button className="text-xs font-bold text-[#D9A000] hover:underline pt-1">Ver mais comentários...</button>
-          </div>
+          {posts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))}
         </main>
 
         <aside className="hidden lg:block lg:col-span-3 space-y-6">
