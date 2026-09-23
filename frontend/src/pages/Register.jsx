@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, MessageSquare, GraduationCap, User, Lock, Eye, EyeOff, ArrowRight, Mail } from 'lucide-react';
 
 import bgImage from '../assets/background.jpg';
@@ -14,8 +15,11 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const navigate = useNavigate();
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    navigate('/feed');
   };
 
   return (

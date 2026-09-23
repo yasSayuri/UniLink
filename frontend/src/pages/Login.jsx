@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, MessageSquare, GraduationCap, User, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import bgImage from '../assets/background.jpg';
 import logoImage from '../assets/unilink-logo.png';
@@ -9,8 +10,11 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
+  const navigate = useNavigate();
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    navigate('/feed');
   };
 
   return (
