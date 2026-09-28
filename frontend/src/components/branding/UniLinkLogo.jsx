@@ -3,6 +3,7 @@ import logoImage from '../../assets/unilink-logo.png';
 export default function UniLinkLogo({ size = 'medium', className = '' }) {
   const sizes = {
     small: { image: 'h-10', text: 'text-2xl' },
+    header: { image: 'h-12', text: 'text-3xl' },
     medium: { image: 'h-16 sm:h-20', text: 'text-5xl sm:text-6xl' },
     large: { image: 'h-20 lg:h-24', text: 'text-6xl xl:text-7xl' },
   };
