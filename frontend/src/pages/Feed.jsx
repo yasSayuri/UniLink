@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import PostCard from '../components/feed/PostCard';
 import FeedHeader from '../components/feed/FeedHeader';
+import FeedMobileNav from '../components/feed/FeedMobileNav';
 import FeedSidebar from '../components/feed/FeedSidebar';
 
 const posts = [
@@ -37,19 +38,102 @@ const posts = [
       content: 'No último ano funcionou normalmente, mas é bom conferir no site da UTFPR!',
     },
   },
+  {
+    id: 3,
+    author: 'Mariana Costa',
+    time: 'Há 5h',
+    course: 'Design',
+    content: 'Alguém tem indicação de gráfica boa e em conta perto do campus? Preciso imprimir pranchas para a entrega de sexta.',
+    tag: '#design',
+    likes: 18,
+    commentsCount: 6,
+    comment: { author: 'Rafaela', time: 'Há 4h', content: 'A Copy Center da rua ao lado faz impressão A1 com preço de estudante.' },
+  },
+  {
+    id: 4,
+    author: 'Pedro Henrique',
+    time: 'Há 6h',
+    course: 'Sistemas de Informação',
+    content: 'Formamos grupo de estudos de banco de dados amanhã às 14h na biblioteca. Quem quiser revisar normalização e SQL, chega junto!',
+    tag: '#grupoDeEstudos',
+    likes: 24,
+    commentsCount: 9,
+  },
+  {
+    id: 5,
+    author: 'Ana Clara',
+    time: 'Há 8h',
+    course: 'Engenharia Civil',
+    content: 'Estou doando alguns livros de cálculo e física do primeiro período. Estão bem conservados. Me chama por mensagem para combinar.',
+    tag: '#doação',
+    likes: 31,
+    commentsCount: 12,
+    comment: { author: 'João', time: 'Há 7h', content: 'Tenho interesse no de cálculo! Te mandei mensagem.' },
+  },
+  {
+    id: 6,
+    author: 'Lucas Martins',
+    time: 'Ontem',
+    course: 'Ciência da Computação',
+    content: 'O laboratório do bloco B está aberto até mais tarde essa semana por causa dos projetos finais. Tem computadores livres no segundo andar.',
+    tag: '#campus',
+    likes: 15,
+    commentsCount: 3,
+  },
+  {
+    id: 7,
+    author: 'Beatriz Souza',
+    time: 'Ontem',
+    course: 'Psicologia',
+    content: 'Vai ter feira de troca de livros no pátio na quinta, durante o intervalo. Pode levar livros didáticos, romances e HQs.',
+    tag: '#trocaDeLivros',
+    likes: 42,
+    commentsCount: 14,
+  },
+  {
+    id: 8,
+    author: 'Gabriel Oliveira',
+    time: 'Há 1 dia',
+    course: 'Administração',
+    content: 'Procuro carona para o campus Ecoville de manhã, saindo do centro. Posso ajudar com a gasolina. Alguém faz esse trajeto?',
+    tag: '#carona',
+    likes: 9,
+    commentsCount: 5,
+    comment: { author: 'Felipe', time: 'Há 22h', content: 'Eu passo pelo centro às 7h40. Te chamei!' },
+  },
+  {
+    id: 9,
+    author: 'Isabela Ferreira',
+    time: 'Há 1 dia',
+    course: 'Letras',
+    content: 'Alguém sabe se a monitoria de escrita acadêmica acontece normalmente durante a semana de provas? Não achei o aviso atualizado.',
+    tag: '#dúvida',
+    likes: 6,
+    commentsCount: 4,
+  },
+  {
+    id: 10,
+    author: 'Rafael Mendes',
+    time: 'Há 2 dias',
+    course: 'Engenharia Elétrica',
+    content: 'Projeto de extensão procurando voluntários para uma oficina de robótica com estudantes do ensino médio. A primeira reunião é aberta para todo mundo.',
+    tag: '#extensão',
+    likes: 27,
+    commentsCount: 8,
+  },
 ];
 
 export default function Feed() {
   return (
-    <div className="min-h-screen bg-[#F4F5F7] text-slate-700 font-sans pb-10 select-none">
+    <div className="large-screen-dashboard min-h-screen bg-[#F4F5F7] pb-24 font-sans text-slate-700 select-none lg:h-dvh lg:overflow-hidden lg:pb-0">
       
       <FeedHeader />
-      <div className="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="mx-auto mt-4 grid max-w-7xl grid-cols-1 gap-4 px-3 sm:mt-6 sm:gap-6 sm:px-4 lg:h-[calc(100dvh-96px)] lg:grid-cols-12 lg:items-stretch lg:overflow-hidden">
         <FeedSidebar />
 
-        <main className="col-span-1 lg:col-span-6 space-y-5">
+        <main className="col-span-1 min-w-0 space-y-5 lg:col-span-6 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
           {/* Criar Publicação */}
-          <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-4">
+          <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-4 lg:shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center shrink-0">
                 <User className="w-6 h-6" />
@@ -61,7 +145,7 @@ export default function Feed() {
               />
             </div>
 
-            <div className="border-t border-slate-100 pt-3 flex items-center justify-between px-2 text-xs font-medium text-slate-600">
+            <div className="border-t border-slate-100 pt-3 flex flex-wrap items-center justify-between gap-1 px-1 sm:px-2 text-xs font-medium text-slate-600">
               <button className="flex items-center gap-2 hover:bg-slate-50 p-2 rounded-xl transition-all">
                 <Image className="w-4 h-4 text-amber-500" />
                 <span>Imagem</span>
@@ -82,12 +166,14 @@ export default function Feed() {
             </div>
           </div>
 
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
+          <div className="feed-posts-scroll space-y-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
         </main>
 
-        <aside className="hidden lg:block lg:col-span-3 space-y-6">
+        <aside className="hidden space-y-6 lg:col-span-3 lg:block lg:min-h-0">
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-slate-800 text-sm">Atividades</h4>
@@ -191,6 +277,7 @@ export default function Feed() {
         </aside>
 
       </div>
+      <FeedMobileNav activeItem="home" />
     </div>
   );
 }

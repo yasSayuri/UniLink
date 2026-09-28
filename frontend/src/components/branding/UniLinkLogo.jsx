@@ -1,8 +1,9 @@
 import logoImage from '../../assets/unilink-logo.png';
 
-export default function UniLinkLogo({ size = 'medium', className = '' }) {
+export default function UniLinkLogo({ size = 'medium', className = '', showTextOnMobile = false }) {
   const sizes = {
     small: { image: 'h-10', text: 'text-2xl' },
+    auth: { image: 'h-16', text: 'text-5xl' },
     header: { image: 'h-12', text: 'text-3xl' },
     medium: { image: 'h-16 sm:h-20', text: 'text-5xl sm:text-6xl' },
     large: { image: 'h-20 lg:h-24', text: 'text-6xl xl:text-7xl' },
@@ -19,7 +20,7 @@ export default function UniLinkLogo({ size = 'medium', className = '' }) {
       />
       <span
         translate="no"
-        className={`notranslate ${currentSize.text} font-black tracking-tight inline-flex items-center`}
+        className={`notranslate ${currentSize.text} ${showTextOnMobile ? 'inline-flex' : 'hidden sm:inline-flex'} font-black tracking-tight items-center`}
       >
         <span className="bg-gradient-to-b from-[#525B67] via-[#38414D] to-[#2B323B] bg-clip-text text-transparent">
           Uni

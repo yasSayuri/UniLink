@@ -2,6 +2,7 @@ import {
   Bookmark, Building, Calendar, ChevronDown, Clock, Compass, Home, MapPin,
   BookOpen, School, SlidersHorizontal, Users,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const filters = [
   { label: 'Faculdade', value: 'Todas', icon: School },
@@ -11,18 +12,18 @@ const filters = [
   { label: 'Disciplinas', value: 'Todas', icon: Users },
 ];
 
-export default function FeedSidebar() {
+export default function FeedSidebar({ activeItem = 'home' }) {
   return (
-    <aside className="hidden lg:block lg:col-span-3 space-y-6">
+    <aside className="hidden space-y-6 lg:col-span-3 lg:block">
       <div className="bg-white rounded-3xl p-3 shadow-sm border border-slate-100 space-y-1">
-        <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl bg-[#FFF8E6] text-[#D9A000] font-bold text-sm transition-all">
+        <Link to="/feed" className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-medium text-sm transition-all ${activeItem === 'home' ? 'bg-[#FFF8E6] text-[#D9A000] font-bold' : 'text-slate-600 hover:bg-slate-50'}`}>
           <Home className="w-5 h-5" />
           <span>Início</span>
-        </button>
-        <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">
+        </Link>
+        <Link to="/apoio-universitario" className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-medium text-sm transition-all ${activeItem === 'support' ? 'bg-[#FFF8E6] text-[#D9A000] font-bold' : 'text-slate-600 hover:bg-slate-50'}`}>
           <Compass className="w-5 h-5" />
           <span>Apoio universitário</span>
-        </button>
+        </Link>
         <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">
           <Users className="w-5 h-5" />
           <span>Comunidades</span>

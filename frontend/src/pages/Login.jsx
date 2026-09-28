@@ -30,7 +30,7 @@ export default function Login() {
         description={<>Continue sua jornada na UniLink<br />e conecte-se com a comunidade.</>}
       />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="auth-mobile-form space-y-4">
         <AuthInput
           icon={User}
           type="text"
@@ -48,7 +48,7 @@ export default function Login() {
         <AuthSubmitButton>Entrar</AuthSubmitButton>
       </form>
 
-      <div className="relative my-8 text-center flex items-center justify-center">
+      <div className="auth-mobile-divider relative my-8 text-center flex items-center justify-center">
         <div className="w-full border-t border-slate-300/60 absolute inset-0 my-auto" />
         <span className="relative z-10 px-3 text-xs text-slate-400 font-medium">ou</span>
       </div>

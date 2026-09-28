@@ -33,7 +33,7 @@ export default function Register() {
         description={<>Preencha os dados abaixo para criar sua conta<br />e fazer parte da nossa comunidade.</>}
       />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="auth-mobile-form space-y-4">
         <AuthInput
           icon={User}
           type="text"
@@ -55,7 +55,7 @@ export default function Register() {
         <AuthSubmitButton>Cadastrar</AuthSubmitButton>
       </form>
 
-      <div className="relative my-6 text-center flex items-center justify-center">
+      <div className="auth-mobile-divider relative my-6 text-center flex items-center justify-center">
         <div className="w-full border-t border-slate-300/60 absolute inset-0 my-auto" />
         <span className="relative z-10 px-3 text-xs text-slate-400 font-medium">ou</span>
       </div>

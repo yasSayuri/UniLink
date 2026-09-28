@@ -6,9 +6,9 @@ import AuthBenefits from './AuthBenefits';
 export default function AuthLayout({ children, illustration, title, brandingFirst = true }) {
   const branding = (
     <div className="hidden lg:flex lg:col-span-7 flex-col justify-between -mt-11 space-y-8">
-      <div className="space-y-5">
+      <div className="large-auth-brand-intro space-y-5">
         <UniLinkLogo size="large" />
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-700 leading-normal">{title}</h1>
+        <h1 className="large-auth-brand-title text-3xl md:text-4xl font-bold text-slate-700 leading-normal">{title}</h1>
         <AuthBenefits />
       </div>
       <div className="pt-2 w-full max-w-[600px] flex justify-center items-center">
@@ -22,10 +22,10 @@ export default function AuthLayout({ children, illustration, title, brandingFirs
   );
 
   const formPanel = (
-    <div className={`lg:col-span-5 flex justify-center relative w-full h-full lg:h-auto ${brandingFirst ? 'lg:pt-8' : 'lg:pt-17'}`}>
-      <div className="w-full max-w-md p-6 sm:p-10 lg:p-12 lg:bg-white/95 lg:backdrop-blur-md lg:rounded-3xl lg:shadow-xl lg:border lg:border-white/40 flex flex-col justify-center min-h-screen lg:min-h-[580px]">
-        <div className="flex lg:hidden items-center justify-center mb-8 pt-6">
-          <UniLinkLogo size="medium" />
+    <div className={`lg:col-span-5 flex justify-center relative w-full lg:h-auto ${brandingFirst ? 'lg:pt-8' : 'lg:pt-17'}`}>
+      <div className="auth-mobile-panel large-auth-form w-full max-w-md p-6 sm:p-10 lg:p-12 lg:bg-white/95 lg:backdrop-blur-md lg:rounded-3xl lg:shadow-xl lg:border lg:border-white/40 flex flex-col justify-center min-h-0 lg:min-h-[580px]">
+        <div className="auth-mobile-branding flex lg:hidden items-center justify-center mb-8">
+          <UniLinkLogo size="auth" showTextOnMobile />
         </div>
         {children}
       </div>
@@ -34,10 +34,10 @@ export default function AuthLayout({ children, illustration, title, brandingFirs
 
   return (
     <div
-      className="min-h-screen w-full bg-cover bg-center bg-no-repeat flex items-center justify-center p-4 lg:p-12 font-sans relative select-none"
+      className="large-auth-layout auth-mobile-fit min-h-dvh w-full bg-cover bg-center bg-no-repeat flex items-start justify-center p-4 pt-2 lg:items-center lg:p-12 font-sans relative select-none"
       style={{ backgroundImage: `url(${bgImage})` }}
     >
-      <div className={`max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 ${brandingFirst ? 'gap-6' : 'gap-[75px]'} items-center min-h-screen lg:min-h-0`}>
+      <div className={`large-auth-content max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 ${brandingFirst ? 'gap-6' : 'gap-[75px]'} items-center`}>
         {brandingFirst ? <>{branding}{formPanel}</> : <>{formPanel}{branding}</>}
       </div>
     </div>
