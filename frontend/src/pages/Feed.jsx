@@ -94,7 +94,7 @@ export default function Feed() {
             </button>
             <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">
               <Compass className="w-5 h-5" />
-              <span>Explorar</span>
+              <span>Apoio universitário</span>
             </button>
             <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">
               <Users className="w-5 h-5" />
