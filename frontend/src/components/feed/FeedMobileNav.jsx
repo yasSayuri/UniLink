@@ -50,13 +50,13 @@ export default function FeedMobileNav({ activeItem = 'home' }) {
           <House className="h-6 w-6" />
         </Link>
 
-        <button type="button" disabled title="Salvos: em breve" aria-label="Salvos, em breve" className={`mx-auto flex items-center justify-center rounded-xl text-slate-400 disabled:cursor-not-allowed ${compact ? 'h-10 w-10' : 'h-11 w-11'}`}>
+        <Link to="/salvos" aria-label="Salvos" aria-current={activeItem === 'saved' ? 'page' : undefined} title="Salvos" className={`mx-auto flex items-center justify-center rounded-full transition-[background-color,color,width,height] duration-500 ${compact ? 'h-10 w-10' : 'h-11 w-11'} ${activeItem === 'saved' ? 'bg-[#FFC72C] text-[#38414D]' : 'text-slate-500 hover:bg-[#FFF3C4] hover:text-[#38414D]'}`}>
           <Bookmark className="h-5 w-5" />
-        </button>
+        </Link>
 
-        <button type="button" disabled title="Eventos: em breve" aria-label="Eventos, em breve" className={`mx-auto flex items-center justify-center rounded-xl text-slate-400 disabled:cursor-not-allowed ${compact ? 'h-10 w-10' : 'h-11 w-11'}`}>
+        <Link to="/eventos" aria-label="Eventos" aria-current={activeItem === 'events' ? 'page' : undefined} title="Eventos" className={`mx-auto flex items-center justify-center rounded-full transition-[background-color,color,width,height] duration-500 ${compact ? 'h-10 w-10' : 'h-11 w-11'} ${activeItem === 'events' ? 'bg-[#FFC72C] text-[#38414D]' : 'text-slate-500 hover:bg-[#FFF3C4] hover:text-[#38414D]'}`}>
           <CalendarDays className="h-5 w-5" />
-        </button>
+        </Link>
       </div>
     </nav>
   );

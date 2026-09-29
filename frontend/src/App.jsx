@@ -5,6 +5,8 @@ import Feed from './pages/Feed';
 import UniversitySupport from './pages/UniversitySupport';
 import Profile from './pages/Profile';
 import Communities from './pages/Communities';
+import SavedPosts from './pages/SavedPosts';
+import Events from './pages/Events';
 
 function App() {
   return (
@@ -21,6 +23,10 @@ function App() {
         <Route path="/apoio-universitario" element={<UniversitySupport />} />
 
         <Route path="/comunidades" element={<Communities />} />
+
+        <Route path="/salvos" element={<SavedPosts />} />
+
+        <Route path="/eventos" element={<Events />} />
 
         <Route path="/perfil" element={<Profile />} />
       </Routes>

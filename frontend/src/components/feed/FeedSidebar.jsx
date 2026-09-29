@@ -1,6 +1,7 @@
 import {
-  Bookmark, Building, Calendar, ChevronDown, Clock, Compass, Home, MapPin,
-  BookOpen, Plus, Search, School, SlidersHorizontal, Users,
+  Bookmark, BookOpen, BriefcaseBusiness, Calendar, ChevronDown,
+  Clock, Compass, Dumbbell, HeartPulse, Home, MapPin, Music, Palette,
+  PartyPopper, Plus, Search, School, SlidersHorizontal, Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -20,8 +21,20 @@ const filters = [
   { label: 'Disciplinas', value: 'Todas', icon: Users },
 ];
 
-export default function FeedSidebar({ activeItem = 'home', selectedCommunity = 'all', onCommunitySelect, communitySearch = '', onCommunitySearchChange }) {
+const eventCategories = [
+  { name: 'Todas', icon: Calendar },
+  { name: 'Acadêmico', icon: BookOpen },
+  { name: 'Música', icon: Music },
+  { name: 'Cultura', icon: Palette },
+  { name: 'Carreira', icon: BriefcaseBusiness },
+  { name: 'Esportes', icon: Dumbbell },
+  { name: 'Bem-estar', icon: HeartPulse },
+  { name: 'Festas', icon: PartyPopper },
+];
+
+export default function FeedSidebar({ activeItem = 'home', selectedCommunity = 'all', onCommunitySelect, communitySearch = '', onCommunitySearchChange, eventCategory = 'Todas', onEventCategoryChange, eventView = 'discover', onEventViewChange, onCreateEvent }) {
   const isCommunities = activeItem === 'communities';
+  const isEvents = activeItem === 'events';
   const visibleCommunities = joinedCommunities.filter((community) => community.name.toLocaleLowerCase('pt-BR').includes(communitySearch.toLocaleLowerCase('pt-BR')));
 
   return (
@@ -39,18 +52,14 @@ export default function FeedSidebar({ activeItem = 'home', selectedCommunity = '
           <Users className="w-5 h-5" />
           <span>Comunidades</span>
         </Link>
-        <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">
+        <Link to="/salvos" className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-medium text-sm transition-all ${activeItem === 'saved' ? 'bg-[#FFF8E6] text-[#D9A000] font-bold' : 'text-slate-600 hover:bg-slate-50'}`}>
           <Bookmark className="w-5 h-5" />
           <span>Salvos</span>
-        </button>
-        <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">
+        </Link>
+        <Link to="/eventos" className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-medium text-sm transition-all ${isEvents ? 'bg-[#FFF8E6] text-[#D9A000] font-bold' : 'text-slate-600 hover:bg-slate-50'}`}>
           <Calendar className="w-5 h-5" />
           <span>Eventos</span>
-        </button>
-        <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all">
-          <Building className="w-5 h-5" />
-          <span>Minha Universidade</span>
-        </button>
+        </Link>
       </div>
 
       {isCommunities ? (
@@ -87,6 +96,31 @@ export default function FeedSidebar({ activeItem = 'home', selectedCommunity = '
               </button>
             ))}
             {visibleCommunities.length === 0 && <p className="px-2 py-3 text-center text-xs text-slate-400">Nenhum grupo encontrado.</p>}
+          </div>
+        </div>
+      ) : isEvents ? (
+        <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-4">
+          <h2 className="px-1 text-sm font-bold text-slate-800">Eventos</h2>
+          <nav aria-label="Navegação de eventos" className="space-y-1 border-b border-slate-100 pb-3">
+            {[
+              { id: 'discover', label: 'Descobrir eventos', icon: Calendar },
+              { id: 'my', label: 'Seus eventos', icon: Bookmark },
+            ].map(({ id, label, icon: Icon }) => (
+              <button key={id} type="button" onClick={() => onEventViewChange?.(id)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${eventView === id ? 'bg-slate-100 text-slate-800' : 'text-slate-600 hover:bg-slate-50'}`}>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-600"><Icon className="h-4 w-4" /></span>{label}
+              </button>
+            ))}
+          </nav>
+          <button type="button" onClick={onCreateEvent} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC72C] px-3 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-amber-400">
+            <Plus className="h-4 w-4" />Criar evento
+          </button>
+          <div className="space-y-1">
+            <h3 className="px-2 pb-1 text-xs font-bold text-slate-800">Categorias</h3>
+            {eventCategories.map(({ name, icon: Icon }) => (
+              <button key={name} type="button" onClick={() => onEventCategoryChange?.(name)} className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-xs transition ${eventCategory === name ? 'bg-[#FFF8E6] font-bold text-[#D9A000]' : 'text-slate-600 hover:bg-[#FFF8E6] hover:text-[#D9A000]'}`}>
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full ${eventCategory === name ? 'bg-[#FFF3C4] text-[#D9A000]' : 'bg-slate-100 text-slate-600'}`}><Icon className="h-4 w-4" /></span>{name === 'Todas' ? 'Todas as categorias' : name}
+              </button>
+            ))}
           </div>
         </div>
       ) : <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">

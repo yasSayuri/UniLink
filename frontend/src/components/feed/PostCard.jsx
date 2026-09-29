@@ -1,9 +1,33 @@
+import { useEffect, useState } from 'react';
 import { Bookmark, MessageCircle, Share2, ThumbsUp } from 'lucide-react';
 import Avatar from './Avatar';
+import { isPostSaved, SAVED_POSTS_CHANGED_EVENT, toggleSavedPost } from '../../utils/savedPosts';
 
-export default function PostCard({ post }) {
+export default function PostCard({ post, onSavedChange }) {
+  const [isSaved, setIsSaved] = useState(() => isPostSaved(post.id));
+  const [notification, setNotification] = useState('');
+
+  useEffect(() => {
+    const updateSavedState = () => setIsSaved(isPostSaved(post.id));
+    window.addEventListener(SAVED_POSTS_CHANGED_EVENT, updateSavedState);
+    return () => window.removeEventListener(SAVED_POSTS_CHANGED_EVENT, updateSavedState);
+  }, [post.id]);
+
+  useEffect(() => {
+    if (!notification) return undefined;
+    const timeout = window.setTimeout(() => setNotification(''), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [notification]);
+
+  const handleSave = () => {
+    const saved = toggleSavedPost(post);
+    setIsSaved(saved);
+    setNotification(saved ? 'Publicação salva!' : onSavedChange ? '' : 'Publicação removida dos salvos.');
+    onSavedChange?.(saved);
+  };
+
   return (
-    <article className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
+    <article className="relative bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Avatar className="bg-[#FFC72C] text-white" />
@@ -31,10 +55,12 @@ export default function PostCard({ post }) {
           </button>
         </div>
         <div className="flex items-center gap-3">
-          <button className="hover:text-slate-800 transition-colors" aria-label="Salvar publicação"><Bookmark className="w-4 h-4" /></button>
+          <button type="button" onClick={handleSave} aria-label={isSaved ? 'Remover publicação dos salvos' : 'Salvar publicação'} aria-pressed={isSaved} title={isSaved ? 'Remover dos salvos' : 'Salvar publicação'} className={`transition-colors ${isSaved ? 'text-[#D9A000]' : 'hover:text-slate-800'}`}><Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} /></button>
           <button className="hover:text-slate-800 transition-colors" aria-label="Compartilhar publicação"><Share2 className="w-4 h-4" /></button>
         </div>
       </div>
+
+      {notification && <div role="status" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-800 px-4 py-3 text-sm font-semibold text-white shadow-lg">{notification}</div>}
 
       {post.comment && (
         <>
