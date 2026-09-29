@@ -38,9 +38,9 @@ export default function FeedMobileNav({ activeItem = 'home' }) {
   return (
     <nav aria-label="Navegação móvel" data-compact={compact} className={`fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 z-40 rounded-full border border-slate-200/80 bg-white/90 shadow-[0_8px_30px_rgba(15,23,42,0.16)] backdrop-blur-lg transition-[width,padding,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${compact ? 'w-[min(84%,360px)] -translate-x-1/2 scale-[0.94] px-1 py-1' : 'w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2 px-2 py-2'}`}>
       <div className={`grid grid-cols-5 items-center transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${compact ? 'h-10' : 'h-12'}`}>
-        <button type="button" disabled title="Comunidades: em breve" aria-label="Comunidades, em breve" className={`mx-auto flex items-center justify-center rounded-xl text-slate-400 disabled:cursor-not-allowed ${compact ? 'h-10 w-10' : 'h-11 w-11'}`}>
+        <Link to="/comunidades" aria-label="Comunidades" aria-current={activeItem === 'communities' ? 'page' : undefined} className={`mx-auto flex items-center justify-center rounded-full transition-[background-color,color,width,height] duration-500 ${compact ? 'h-10 w-10' : 'h-11 w-11'} ${activeItem === 'communities' ? 'bg-[#FFC72C] text-[#38414D]' : 'text-slate-500 hover:bg-[#FFF3C4] hover:text-[#38414D]'}`}>
           <Users className="h-5 w-5" />
-        </button>
+        </Link>
 
         <Link to="/apoio-universitario" aria-label="Apoio universitário" aria-current={activeItem === 'support' ? 'page' : undefined} className={`mx-auto flex items-center justify-center rounded-full transition-[background-color,color,width,height] duration-500 ${compact ? 'h-10 w-10' : 'h-11 w-11'} ${activeItem === 'support' ? 'bg-[#FFC72C] text-[#38414D]' : 'text-slate-500 hover:bg-[#FFF3C4] hover:text-[#38414D]'}`}>
           <Compass className="h-5 w-5" />

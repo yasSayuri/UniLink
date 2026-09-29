@@ -8,8 +8,8 @@ export default function PostCard({ post }) {
         <div className="flex items-center gap-3">
           <Avatar className="bg-[#FFC72C] text-white" />
           <div>
-            <h4 className="text-sm font-bold text-slate-800">{post.author}</h4>
-            <p className="text-xs text-slate-400">{post.time} • {post.course}</p>
+            <h4 className="text-sm font-bold text-slate-800">{post.community || post.author}</h4>
+            <p className="text-xs text-slate-400">{post.community ? `Publicado por ${post.author} • ${post.time}` : `${post.time} • ${post.course}`}</p>
           </div>
         </div>
         <button className="text-slate-400 hover:text-slate-600 font-bold px-2" aria-label="Mais opções">•••</button>

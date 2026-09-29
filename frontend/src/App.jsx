@@ -4,6 +4,7 @@ import Register from './pages/Register';
 import Feed from './pages/Feed';
 import UniversitySupport from './pages/UniversitySupport';
 import Profile from './pages/Profile';
+import Communities from './pages/Communities';
 
 function App() {
   return (
@@ -18,6 +19,8 @@ function App() {
         <Route path="/feed" element={<Feed />} />
 
         <Route path="/apoio-universitario" element={<UniversitySupport />} />
+
+        <Route path="/comunidades" element={<Communities />} />
 
         <Route path="/perfil" element={<Profile />} />
       </Routes>
