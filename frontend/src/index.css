@@ -11,6 +11,17 @@
 	height: 0;
 }
 
+.profile-scrollable {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.profile-scrollable::-webkit-scrollbar {
+	display: none;
+	width: 0;
+	height: 0;
+}
+
 @media (min-width: 1600px) {
 	.large-auth-brand-intro {
 		transform: translateY(-2rem);

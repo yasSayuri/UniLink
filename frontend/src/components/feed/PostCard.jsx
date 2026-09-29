@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Bookmark, MessageCircle, Share2, ThumbsUp } from 'lucide-react';
+import { Bookmark, MessageCircle, Repeat2, Share2, ThumbsUp } from 'lucide-react';
 import Avatar from './Avatar';
 import { isPostSaved, SAVED_POSTS_CHANGED_EVENT, toggleSavedPost } from '../../utils/savedPosts';
 
 export default function PostCard({ post, onSavedChange }) {
   const [isSaved, setIsSaved] = useState(() => isPostSaved(post.id));
+  const [isReposted, setIsReposted] = useState(false);
   const [notification, setNotification] = useState('');
 
   useEffect(() => {
@@ -49,6 +50,9 @@ export default function PostCard({ post, onSavedChange }) {
         <div className="flex items-center gap-4">
           <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors">
             <ThumbsUp className="w-4 h-4" /><span>{post.likes}</span>
+          </button>
+          <button type="button" onClick={() => setIsReposted((reposted) => !reposted)} aria-label={isReposted ? 'Desfazer repost' : 'Repostar publicação'} aria-pressed={isReposted} className={`flex items-center gap-1.5 transition-colors ${isReposted ? 'text-emerald-600' : 'hover:text-slate-800'}`}>
+            <Repeat2 className="w-4 h-4" /><span>{(post.reposts || 0) + (isReposted ? 1 : 0)}</span>
           </button>
           <button className="flex items-center gap-1.5 hover:text-slate-800 transition-colors">
             <MessageCircle className="w-4 h-4" /><span>{post.commentsCount}</span>
