@@ -1,139 +1,182 @@
-import { useState } from 'react';
-import {
-  ArrowLeft, BookOpen, CalendarDays, GraduationCap, MapPin, Repeat2,
-  X,
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { BookOpen, Camera, GraduationCap, MapPin, Pencil, UserPlus, X } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
 import FeedHeader from '../components/feed/FeedHeader';
 import FeedMobileNav from '../components/feed/FeedMobileNav';
 import FeedSidebar from '../components/feed/FeedSidebar';
 import PostCard from '../components/feed/PostCard';
+import PostComposer from '../components/feed/PostComposer';
+import {
+  createPost, followUser, getCurrentUser, getFollowers, getFollowing, getUserFollowers, getUserFollowing,
+  getUserPosts, getUserProfile, unfollowUser, updateProfile,
+} from '../utils/authApi';
 
-const profilePosts = [
-  {
-    id: 201,
-    author: 'Yasmin',
-    time: 'Há 2h',
-    course: '@yasmin · UTFPR',
-    content: 'Fechando mais uma etapa do projeto de interface. Foi muito bom trocar ideias com o pessoal da turma hoje!',
-    tag: '#projetos',
-    likes: 24,
-    commentsCount: 6,
-  },
-  {
-    id: 202,
-    author: 'Yasmin',
-    time: 'Ontem',
-    course: '@yasmin · UTFPR',
-    content: 'Alguém recomenda um grupo de estudos de banco de dados para esta semana? Posso ajudar com SQL.',
-    tag: '#estudos',
-    likes: 11,
-    commentsCount: 9,
-  },
-  {
-    id: 203,
-    author: 'Yasmin',
-    time: 'Há 3 dias',
-    course: '@yasmin · UTFPR',
-    content: 'A biblioteca do campus é o melhor lugar para terminar os trabalhos em semana de entrega.',
-    tag: '#campus',
-    likes: 37,
-    commentsCount: 4,
-  },
-];
+function readSavedUser() {
+  try {
+    return JSON.parse(localStorage.getItem('unilink.user') || 'null');
+  } catch {
+    return null;
+  }
+}
 
-const profileReplies = [
-  {
-    id: 211,
-    author: 'Yasmin',
-    time: 'Há 1h',
-    course: '@yasmin · respondeu a @marina',
-    content: 'Também estou nessa disciplina! Posso compartilhar minhas anotações da última aula.',
-    tag: '#estudos',
-    likes: 4,
-    commentsCount: 2,
-  },
-  {
-    id: 212,
-    author: 'Yasmin',
-    time: 'Há 1 dia',
-    course: '@yasmin · respondeu a @pedro',
-    content: 'A feira vai acontecer no bloco A, das 10h às 17h. Vi a programação no site da universidade.',
-    tag: '#eventos',
-    likes: 8,
-    commentsCount: 1,
-  },
-];
+function readImage(event, field, setDraft) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => setDraft((current) => ({ ...current, [field]: reader.result }));
+  reader.readAsDataURL(file);
+}
 
-const profileReposts = [
-  {
-    id: 221,
-    author: 'Centro Acadêmico de Computação',
-    time: 'Há 5h',
-    course: '@cacomp · UTFPR',
-    content: 'Inscrições abertas para a maratona de programação. Forme sua equipe e participe no sábado!',
-    tag: '#programação',
-    likes: 52,
-    commentsCount: 12,
-  },
-  {
-    id: 222,
-    author: 'Biblioteca UTFPR',
-    time: 'Há 2 dias',
-    course: '@bibliotecautfpr · UTFPR',
-    content: 'Novos horários de atendimento durante o período de provas: de segunda a sexta, até as 22h.',
-    tag: '#biblioteca',
-    likes: 31,
-    commentsCount: 5,
-  },
-];
+function imagePosition(value) {
+  return {
+    x: Number.isFinite(value?.x) ? value.x : 50,
+    y: Number.isFinite(value?.y) ? value.y : 50,
+  };
+}
 
-const profileMedia = [
-  { src: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=700&q=85', alt: 'Estudantes reunidos no campus', caption: 'Encontro com a turma' },
-  { src: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=700&q=85', alt: 'Computador em uma mesa de estudos', caption: 'Projeto de interface' },
-  { src: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=700&q=85', alt: 'Auditório preparado para uma palestra', caption: 'Semana acadêmica' },
-  { src: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=700&q=85', alt: 'Grupo de estudantes conversando', caption: 'Fim de semestre' },
-];
-
-const profileDetails = [
-  { label: 'Universidade', value: 'UTFPR', icon: GraduationCap },
-  { label: 'Curso', value: 'Ciência da Computação', icon: BookOpen },
-  { label: 'Campus', value: 'Campus Centro', icon: MapPin },
-  { label: 'Entrou em', value: 'Março de 2024', icon: CalendarDays },
-];
-
-const profileTabs = [
-  { id: 'posts', label: 'Publicações' },
-  { id: 'replies', label: 'Respostas' },
-  { id: 'reposts', label: 'Reposts' },
-  { id: 'media', label: 'Mídia' },
-];
-
-const suggestions = [
-  { name: 'Marina Costa', handle: '@marina.costa', initial: 'M', color: 'bg-rose-100 text-rose-700' },
-  { name: 'Rafael Mendes', handle: '@rafael.mendes', initial: 'R', color: 'bg-blue-100 text-blue-700' },
-  { name: 'Centro Acadêmico de Computação', handle: '@cacomp', initial: 'C', color: 'bg-amber-100 text-amber-800' },
-];
+function userImagePosition(user, prefix) {
+  return imagePosition({
+    x: user?.[`${prefix}PositionX`],
+    y: user?.[`${prefix}PositionY`],
+  });
+}
 
 export default function Profile() {
-  const [activeTab, setActiveTab] = useState('posts');
-  const [name, setName] = useState('Yasmin');
-  const [bio, setBio] = useState('Estudante de Ciência da Computação. Compartilhando projetos, descobertas e a vida no campus.');
-  const [editOpen, setEditOpen] = useState(false);
-  const [draftName, setDraftName] = useState(name);
-  const [draftBio, setDraftBio] = useState(bio);
+  const { userId: requestedProfileId } = useParams();
+  const [user, setUser] = useState(readSavedUser);
+  const [posts, setPosts] = useState([]);
+  const [error, setError] = useState('');
+  const [loadedProfileKey, setLoadedProfileKey] = useState(null);
+  const [followingBusy, setFollowingBusy] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [connectionsTab, setConnectionsTab] = useState(null);
+  const [draft, setDraft] = useState({ name: user?.name || '', username: user?.username || '' });
+  const avatarInputRef = useRef(null);
+  const headerInputRef = useRef(null);
+  const imageDragRef = useRef(null);
+  const isOwnProfile = !requestedProfileId || requestedProfileId === user?.id;
+  const profileKey = requestedProfileId || 'me';
+  const loading = loadedProfileKey !== profileKey;
 
-  const saveProfile = (event) => {
+  useEffect(() => {
+    let active = true;
+    const savedUser = readSavedUser();
+    const profileRequest = requestedProfileId && requestedProfileId !== savedUser?.id
+      ? getUserProfile(requestedProfileId)
+      : getCurrentUser();
+    const postsRequest = requestedProfileId
+      ? getUserPosts(requestedProfileId)
+      : getUserPosts(savedUser?.id);
+    Promise.all([profileRequest, postsRequest])
+      .then(([profile, profilePosts]) => {
+        if (!active) return;
+        setUser(profile);
+        setPosts(profilePosts);
+        setError('');
+        setLoadedProfileKey(profileKey);
+        if (profile.id === savedUser?.id) localStorage.setItem('unilink.user', JSON.stringify(profile));
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError.message);
+          setLoadedProfileKey(profileKey);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [profileKey, requestedProfileId]);
+
+  const name = user?.name || 'Seu perfil';
+  const username = user?.username ? `@${user.username}` : '';
+  const academicDetails = [
+    { label: 'Instituição', value: user?.institutionName, icon: GraduationCap },
+    { label: 'Curso', value: user?.course, icon: BookOpen },
+    { label: 'Campus', value: user?.campus, icon: MapPin },
+    { label: 'Período', value: user?.academicPeriod ? `${user.academicPeriod}º período` : null, icon: BookOpen },
+  ].filter((detail) => detail.value);
+  const institutionAbbreviation = user?.institutionName
+    ?.match(/\(([^)]+)\)/)?.[1]
+    || user?.institutionName?.split(/\s+/).map((word) => word[0]).join('').slice(0, 6).toLocaleUpperCase('pt-BR');
+
+  const saveProfile = async (event) => {
     event.preventDefault();
-    setName(draftName.trim() || name);
-    setBio(draftBio.trim());
-    setEditOpen(false);
+    setError('');
+    setSaving(true);
+    try {
+      const updatedUser = await updateProfile(draft);
+      setUser(updatedUser);
+      localStorage.setItem('unilink.user', JSON.stringify(updatedUser));
+      setIsEditing(false);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const postsByTab = {
-    posts: profilePosts,
-    replies: profileReplies,
-    reposts: profileReposts,
+  const publishProfilePost = async (content, privacy, communityName, media) => {
+    setPublishError('');
+    setPublishing(true);
+    try {
+      const created = await createPost(content, privacy, communityName, media);
+      setPosts((current) => [created, ...current]);
+      return true;
+    } catch (requestError) {
+      setPublishError(requestError.message);
+      return false;
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const startImageDrag = (event, field) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const position = imagePosition(draft[field]);
+    imageDragRef.current = {
+      field,
+      startX: event.clientX,
+      startY: event.clientY,
+      initialX: position.x,
+      initialY: position.y,
+      width: event.currentTarget.clientWidth,
+      height: event.currentTarget.clientHeight,
+    };
+  };
+
+  const moveImageDrag = (event) => {
+    const drag = imageDragRef.current;
+    if (!drag) return;
+    const nextPosition = {
+      x: Math.max(0, Math.min(100, drag.initialX - ((event.clientX - drag.startX) * 50) / drag.width)),
+      y: Math.max(0, Math.min(100, drag.initialY - ((event.clientY - drag.startY) * 50) / drag.height)),
+    };
+    setDraft((current) => ({ ...current, [drag.field]: nextPosition }));
+  };
+
+  const toggleProfileFollow = async () => {
+    if (!user || followingBusy) return;
+    setFollowingBusy(true);
+    setError('');
+    try {
+      if (user.following) {
+        await unfollowUser(user.id);
+        setUser((current) => ({ ...current, following: false, followersCount: Math.max(0, current.followersCount - 1) }));
+      } else {
+        await followUser(user.id);
+        setUser((current) => ({ ...current, following: true, followersCount: current.followersCount + 1 }));
+      }
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setFollowingBusy(false);
+    }
   };
 
   return (
@@ -142,111 +185,266 @@ export default function Profile() {
       <div className="mx-auto mt-4 grid max-w-7xl grid-cols-1 gap-4 px-3 sm:mt-6 sm:gap-6 sm:px-4 lg:h-[calc(100dvh-96px)] lg:grid-cols-12 lg:items-stretch lg:overflow-hidden">
         <FeedSidebar />
 
-        <main className="profile-scrollable min-w-0 space-y-4 lg:col-span-6 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+        <main className="primary-scroll profile-scrollable min-w-0 space-y-4 lg:col-span-6 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
           <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex h-12 items-center gap-4 px-4">
-              <Link to="/feed" aria-label="Voltar ao início" className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100"><ArrowLeft className="h-4 w-4" /></Link>
-              <div><h1 className="text-sm font-extrabold text-slate-800">{name}</h1><p className="text-[10px] text-slate-500">12 publicações</p></div>
-            </div>
+            <div
+              aria-hidden="true"
+              className="h-48 bg-gradient-to-r from-slate-800 via-slate-700 to-amber-500 bg-cover bg-center sm:h-64"
+              style={user?.headerUrl ? { backgroundImage: `url(${user.headerUrl})`, backgroundPosition: `${userImagePosition(user, 'header').x}% ${userImagePosition(user, 'header').y}%` } : undefined}
+            />
 
-            <div className="relative h-36 overflow-hidden bg-[#EADCA3] sm:h-48">
-              <img src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=1400&q=85" alt="Campus universitário" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-slate-900/10" />
-            </div>
-
-            <div className="px-4 pb-4 sm:px-6">
-              <div className="flex min-h-20 items-start justify-between">
-                <div className="relative z-10 -mt-10 flex h-20 w-20 items-center justify-center rounded-full border-4 border-white bg-[#FFC72C] text-2xl font-extrabold text-slate-800 sm:-mt-12 sm:h-24 sm:w-24 sm:text-3xl">Y</div>
-                <button type="button" onClick={() => { setDraftName(name); setDraftBio(bio); setEditOpen(true); }} className="mt-3 rounded-full border border-slate-300 px-4 py-2 text-xs font-bold text-slate-800 transition hover:bg-slate-50">Editar perfil</button>
+            <div className="px-4 pb-5 sm:px-6">
+              <div className="flex min-h-24 items-start justify-between sm:min-h-28">
+                <div className="relative z-10 -mt-16 ml-1 -mb-8 flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#FFC72C] text-3xl font-extrabold text-slate-800 sm:ml-2 sm:-mt-[4.5rem] sm:-mb-10 sm:h-36 sm:w-36 sm:text-4xl">
+                  {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" style={{ objectPosition: `${userImagePosition(user, 'avatar').x}% ${userImagePosition(user, 'avatar').y}%` }} /> : name.charAt(0).toLocaleUpperCase('pt-BR')}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  {isOwnProfile && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraft({ name: user?.name || '', username: user?.username || '', avatarUrl: user?.avatarUrl || '', headerUrl: user?.headerUrl || '', avatarPosition: userImagePosition(user, 'avatar'), headerPosition: userImagePosition(user, 'header') });
+                        setIsEditing(true);
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 transition hover:border-amber-400 hover:bg-amber-50"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />Editar perfil
+                    </button>
+                  )}
+                  {!isOwnProfile && user && (
+                    <button type="button" disabled={followingBusy} onClick={toggleProfileFollow} className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold disabled:opacity-50 ${user.following ? 'border-slate-300 text-slate-700' : 'border-amber-300 bg-amber-50 text-amber-800'}`}>
+                      <UserPlus className="h-3.5 w-3.5" />{user.following ? 'Seguindo' : 'Seguir'}
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-1">
+              <div className="-mt-6">
                 <h2 className="text-lg font-extrabold leading-tight text-slate-900">{name}</h2>
-                <p className="mt-0.5 text-xs text-slate-500">@yasmin</p>
-                <p className="mt-3 text-sm leading-relaxed text-slate-700">{bio}</p>
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500">
-                  <span className="inline-flex items-center gap-1.5"><GraduationCap className="h-3.5 w-3.5" />Ciência da Computação · UTFPR</span>
-                  <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />Curitiba, PR</span>
-                  <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" />Entrou em março de 2024</span>
+                {username && <p className="mt-0.5 text-xs text-slate-500">{username}</p>}
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500" aria-label="Estatísticas do perfil">
+                  <span><strong className="font-extrabold text-slate-800">{posts.length}</strong> posts</span>
+                  <button type="button" onClick={() => setConnectionsTab('following')} className="hover:underline">
+                    <strong className="font-extrabold text-slate-800">{user?.followingCount ?? 0}</strong> seguindo
+                  </button>
+                  <button type="button" onClick={() => setConnectionsTab('followers')} className="hover:underline">
+                    <strong className="font-extrabold text-slate-800">{user?.followersCount ?? 0}</strong> seguidores
+                  </button>
                 </div>
-                <div className="mt-3 flex gap-4 text-xs">
-                  <p><strong className="text-slate-900">118</strong> <span className="text-slate-500">Seguindo</span></p>
-                  <p><strong className="text-slate-900">301</strong> <span className="text-slate-500">Seguidores</span></p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                  {institutionAbbreviation && <span className="inline-flex items-center gap-1.5 font-bold text-slate-700"><GraduationCap className="h-3.5 w-3.5" />{institutionAbbreviation}</span>}
+                  {academicDetails.filter(({ label }) => label !== 'Instituição').map(({ label, value, icon: Icon }) => (
+                    <span key={label} className="inline-flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" />{value}</span>
+                  ))}
                 </div>
               </div>
             </div>
-
-            <nav aria-label="Publicações do perfil" className="mt-2 grid grid-cols-4 border-t border-slate-200">
-              {profileTabs.map((tab) => (
-                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} aria-current={activeTab === tab.id ? 'page' : undefined} className={`relative min-h-12 px-1 text-[11px] font-semibold transition-colors sm:text-xs ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'}`}>
-                  {tab.label}
-                  {activeTab === tab.id && <span className="absolute inset-x-3 bottom-0 h-1 rounded-full bg-[#FFC72C]" />}
-                </button>
-              ))}
-            </nav>
           </section>
 
-          {activeTab === 'media' ? (
-            <section aria-label="Mídia do perfil" className="grid grid-cols-2 gap-2 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 sm:grid-cols-3">
-              {profileMedia.map((media) => (
-                <article key={media.caption} className="group relative aspect-square overflow-hidden rounded-xl bg-slate-100">
-                  <img src={media.src} alt={media.alt} loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/70 to-transparent px-3 pb-3 pt-8 text-xs font-semibold text-white">{media.caption}</div>
-                </article>
-              ))}
-            </section>
-          ) : (
-            <section aria-label={profileTabs.find((tab) => tab.id === activeTab)?.label} className="space-y-3">
-              {postsByTab[activeTab].map((post) => (
-                <article key={post.id}>
-                  {activeTab === 'reposts' && <p className="mb-1.5 flex items-center gap-2 pl-12 text-[11px] font-semibold text-slate-500"><Repeat2 className="h-3.5 w-3.5" />{name} repostou</p>}
-                  <PostCard post={post} />
-                </article>
-              ))}
-            </section>
+          {isOwnProfile && (
+            <PostComposer user={user} onSubmit={publishProfilePost} error={publishError} publishing={publishing} />
           )}
+
+          <section aria-label="Publicações do perfil" className="space-y-4">
+            {loading ? <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Carregando perfil...</p> : posts.length ? posts.map((post) => <PostCard key={`${post.id}-${post.reposted}`} post={post} />) : (
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <h2 className="text-sm font-bold text-slate-700">Nenhuma publicação ainda</h2>
+                <p className="mt-1 text-xs text-slate-500">As publicações aparecerão aqui quando forem compartilhadas.</p>
+              </div>
+            )}
+          </section>
+          {error && !loading && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
         </main>
 
-        <aside className="profile-scrollable hidden space-y-4 lg:col-span-3 lg:block lg:overflow-y-auto">
+        <aside className="hidden space-y-4 lg:col-span-3 lg:block lg:overflow-y-auto">
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <h2 className="text-sm font-extrabold text-slate-800">Informações acadêmicas</h2>
-            <dl className="mt-3 space-y-3">
-              {profileDetails.map(({ label, value, icon: Icon }) => (
-                <div key={label} className="flex items-center gap-3">
-                  <Icon className="h-4 w-4 shrink-0 text-amber-700" />
-                  <div><dt className="text-[10px] text-slate-500">{label}</dt><dd className="text-xs font-semibold text-slate-800">{value}</dd></div>
-                </div>
-              ))}
-            </dl>
-          </section>
-
-          <section className="rounded-2xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-extrabold text-slate-800">Talvez você conheça</h2>
-            <div className="mt-3 space-y-4">
-              {suggestions.map((person) => (
-                <div key={person.handle} className="flex items-center gap-2.5">
-                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${person.color}`}>{person.initial}</span>
-                  <div className="min-w-0"><p className="truncate text-xs font-bold text-slate-800">{person.name}</p><p className="text-[10px] text-slate-500">{person.handle}</p></div>
-                  <button type="button" className="ml-auto rounded-full bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white transition hover:bg-slate-700">Seguir</button>
-                </div>
-              ))}
-            </div>
+            {academicDetails.length ? (
+              <dl className="mt-3 space-y-3">
+                {academicDetails.map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <Icon className="h-4 w-4 shrink-0 text-amber-700" />
+                    <div><dt className="text-[10px] text-slate-500">{label}</dt><dd className="text-xs font-semibold text-slate-800">{value}</dd></div>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="mt-3 text-xs text-slate-500">As informações acadêmicas ainda não foram preenchidas.</p>
+            )}
           </section>
         </aside>
       </div>
-
-      {editOpen && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditOpen(false); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="edit-profile-title" className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-          <div className="mb-5 flex items-center justify-between"><h2 id="edit-profile-title" className="text-lg font-extrabold text-slate-800">Editar perfil</h2><button type="button" onClick={() => setEditOpen(false)} aria-label="Fechar" className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
-          <form onSubmit={saveProfile} className="space-y-4">
-            <label className="block text-xs font-semibold text-slate-700">Nome<input required maxLength={40} value={draftName} onChange={(event) => setDraftName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100" /></label>
-            <label className="block text-xs font-semibold text-slate-700">Bio<textarea maxLength={160} rows={3} value={draftBio} onChange={(event) => setDraftBio(event.target.value)} className="mt-1.5 w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-normal outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100" /></label>
-            <button type="submit" className="w-full rounded-xl bg-[#FFC72C] px-4 py-3 text-sm font-bold text-slate-900 transition hover:bg-amber-400">Salvar alterações</button>
-          </form>
-        </section>
-      </div>}
-
       <FeedMobileNav />
+      {isEditing && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-5">
+          <section role="dialog" aria-modal="true" aria-labelledby="edit-profile-title" className="max-h-[94dvh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <form onSubmit={saveProfile}>
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => setIsEditing(false)} aria-label="Fechar" className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100"><X className="h-5 w-5" /></button>
+                <h2 id="edit-profile-title" className="text-lg font-extrabold text-slate-800">Editar perfil</h2>
+              </div>
+              <button type="submit" disabled={saving} className="rounded-full bg-slate-900 px-5 py-2 text-sm font-bold text-white transition hover:bg-slate-700 disabled:opacity-60">{saving ? 'Salvando...' : 'Salvar'}</button>
+            </div>
+
+            <div
+              className="relative h-48 overflow-hidden bg-gradient-to-r from-slate-800 via-slate-700 to-amber-500 sm:h-64"
+              onPointerMove={moveImageDrag}
+              onPointerUp={() => { imageDragRef.current = null; }}
+              onPointerCancel={() => { imageDragRef.current = null; }}
+            >
+              {draft.headerUrl && <img src={draft.headerUrl} alt="Prévia da capa" draggable="false" onPointerDown={(event) => startImageDrag(event, 'headerPosition')} className="h-full w-full cursor-grab select-none object-cover active:cursor-grabbing" style={{ objectPosition: `${imagePosition(draft.headerPosition).x}% ${imagePosition(draft.headerPosition).y}%` }} />}
+              <button type="button" onClick={() => headerInputRef.current?.click()} aria-label="Alterar imagem de capa" className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-slate-900/70 p-3 text-white transition hover:bg-slate-900">
+                <Camera className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-4 pb-6 sm:px-5">
+              <div className="relative -mt-14 flex items-end justify-between sm:-mt-16">
+                <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#FFC72C] text-3xl font-extrabold text-slate-800 sm:h-32 sm:w-32 sm:text-4xl">
+                  {draft.avatarUrl ? <img src={draft.avatarUrl} alt="Prévia da foto de perfil" draggable="false" onPointerDown={(event) => startImageDrag(event, 'avatarPosition')} onPointerMove={moveImageDrag} onPointerUp={() => { imageDragRef.current = null; }} onPointerCancel={() => { imageDragRef.current = null; }} className="h-full w-full cursor-grab select-none object-cover active:cursor-grabbing" style={{ objectPosition: `${imagePosition(draft.avatarPosition).x}% ${imagePosition(draft.avatarPosition).y}%` }} /> : draft.name?.charAt(0).toLocaleUpperCase('pt-BR')}
+                  <button type="button" onClick={() => avatarInputRef.current?.click()} aria-label="Alterar foto de perfil" className="absolute inset-0 m-auto flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/75 text-white transition hover:bg-slate-900"><Camera className="h-5 w-5" /></button>
+                </div>
+              </div>
+              <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden onChange={(event) => readImage(event, 'avatarUrl', setDraft)} />
+              <input ref={headerInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" hidden onChange={(event) => readImage(event, 'headerUrl', setDraft)} />
+              <div className="mt-5 space-y-4">
+                <p className="text-xs text-slate-500">Arraste a capa ou a foto de perfil para escolher o enquadramento.</p>
+                <label className="block text-sm font-semibold text-slate-700">
+              Nome
+              <input required maxLength={100} value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100" />
+                </label>
+                <label className="block text-sm font-semibold text-slate-700">
+              Username
+              <div className="mt-1.5 flex items-center rounded-xl border border-slate-200 px-3.5 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-100">
+                  <span className="text-sm text-slate-400">@</span>
+                  <input required minLength={3} maxLength={30} pattern="[a-zA-Z0-9._]+" value={draft.username} onChange={(event) => setDraft((current) => ({ ...current, username: event.target.value }))} className="w-full border-0 px-2 py-3 text-sm outline-none" />
+                </div>
+                <span className="mt-1 block text-xs font-normal text-slate-400">Use letras, números, ponto ou sublinhado.</span>
+                  </label>
+                  {error && <p role="alert" className="rounded-xl bg-red-50 px-3.5 py-3 text-sm text-red-700">{error}</p>}
+                </div>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+      {connectionsTab && (
+        <ConnectionsDialog
+          key={`${user?.id}-${connectionsTab}`}
+          profileId={user?.id}
+          isOwnProfile={isOwnProfile}
+          tab={connectionsTab}
+          onTabChange={setConnectionsTab}
+          onClose={() => setConnectionsTab(null)}
+          onConnectionsChanged={async () => {
+            const currentUser = await getCurrentUser();
+            setUser(currentUser);
+            localStorage.setItem('unilink.user', JSON.stringify(currentUser));
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConnectionsDialog({ tab, profileId, isOwnProfile, onTabChange, onClose, onConnectionsChanged }) {
+  const [people, setPeople] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [busyUserId, setBusyUserId] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    (tab === 'following'
+      ? (isOwnProfile ? getFollowing() : getUserFollowing(profileId))
+      : (isOwnProfile ? getFollowers() : getUserFollowers(profileId)))
+      .then((result) => {
+        if (active) setPeople(result);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isOwnProfile, profileId, tab]);
+
+  const toggleFollowing = async (person) => {
+    setBusyUserId(person.id);
+    setError('');
+    try {
+      if (person.following) {
+        await unfollowUser(person.id);
+        if (tab === 'following') {
+          setPeople((current) => current.filter((item) => item.id !== person.id));
+        } else {
+          setPeople((current) => current.map((item) => (
+            item.id === person.id ? { ...item, following: false } : item
+          )));
+        }
+      } else {
+        await followUser(person.id);
+        setPeople((current) => current.map((item) => (
+          item.id === person.id ? { ...item, following: true } : item
+        )));
+      }
+      await onConnectionsChanged();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setBusyUserId('');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <section role="dialog" aria-modal="true" aria-labelledby="connections-title" className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <h2 id="connections-title" className="text-base font-extrabold text-slate-800">
+            {tab === 'following' ? 'Seguindo' : 'Seguidores'}
+          </h2>
+          <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full p-2 text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="grid grid-cols-2 border-b border-slate-100">
+          {[
+            { id: 'followers', label: 'Seguidores' },
+            { id: 'following', label: 'Seguindo' },
+          ].map(({ id, label }) => (
+            <button key={id} type="button" onClick={() => onTabChange(id)} className={`border-b-2 py-3 text-sm font-semibold ${tab === id ? 'border-amber-400 text-slate-900' : 'border-transparent text-slate-500'}`}>{label}</button>
+          ))}
+        </div>
+        <div className="max-h-[60vh] space-y-2 overflow-y-auto p-4">
+          {loading ? (
+            <p className="py-8 text-center text-sm text-slate-500">Carregando...</p>
+          ) : error ? (
+            <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>
+          ) : people.length ? people.map((person) => (
+            <div key={person.id} className="flex items-center gap-3 rounded-2xl px-2 py-2">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] font-bold text-slate-800">{person.name.charAt(0).toLocaleUpperCase('pt-BR')}</span>
+              <div className="min-w-0 flex-1">
+                <Link to={`/perfil/${person.id}`} onClick={onClose} className="block truncate text-sm font-bold text-slate-800 hover:underline">{person.name}</Link>
+                <Link to={`/perfil/${person.id}`} onClick={onClose} className="block truncate text-xs text-slate-500 hover:underline">@{person.username}</Link>
+              </div>
+              {isOwnProfile && <button
+                type="button"
+                disabled={busyUserId === person.id}
+                onClick={() => toggleFollowing(person)}
+                className={`inline-flex items-center gap-1 rounded-full border px-3 py-2 text-xs font-semibold disabled:opacity-50 ${person.following ? 'border-slate-200 text-slate-600 hover:border-red-200 hover:text-red-600' : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100'}`}
+              >
+                <UserPlus className="h-3.5 w-3.5" />{person.following ? 'Seguindo' : 'Seguir'}
+              </button>}
+            </div>
+          )) : (
+            <p className="py-8 text-center text-sm text-slate-500">
+              {tab === 'following' ? 'Você ainda não segue ninguém.' : 'Você ainda não tem seguidores.'}
+            </p>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

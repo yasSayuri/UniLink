@@ -29,9 +29,9 @@ export default function SavedPosts() {
         <main className="col-span-1 min-w-0 space-y-5 lg:col-span-6 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
           <section className="lg:shrink-0">
             <h1 className="text-xl font-extrabold leading-tight text-slate-800">Publicações salvas</h1>
-            <p className="mt-1 text-xs text-slate-500">Posts que você guardou para ver depois</p>
+            <p className="mt-1 text-xs text-slate-500">Posts que você guardou para ver depois.</p>
           </section>
-          <div className="feed-posts-scroll space-y-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+          <div className="primary-scroll feed-posts-scroll space-y-5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
             {savedPosts.length ? savedPosts.map((post) => <PostCard key={post.id} post={post} onSavedChange={(saved) => setNotification(saved ? 'Publicação salva!' : 'Publicação removida dos salvos.')} />) : (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Você ainda não salvou nenhuma publicação.</div>
             )}

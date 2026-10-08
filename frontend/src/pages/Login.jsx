@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import illustrationImage from '../assets/login-illustration.png';
 import AuthHeader from '../components/auth/AuthHeader';
 import AuthInput from '../components/auth/AuthInput';
@@ -8,15 +8,27 @@ import AuthLayout from '../components/auth/AuthLayout';
 import AuthSubmitButton from '../components/auth/AuthSubmitButton';
 import AuthSwitchLink from '../components/auth/AuthSwitchLink';
 import PasswordInput from '../components/auth/PasswordInput';
+import { login } from '../utils/authApi';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    navigate('/feed');
+    setError('');
+    setSubmitting(true);
+    try {
+      await login({ email, password });
+      navigate('/feed');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -32,20 +44,21 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} className="auth-mobile-form space-y-4">
         <AuthInput
-          icon={User}
-          type="text"
-          placeholder="Usuário"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
+          icon={Mail}
+          type="email"
+          placeholder="E-mail"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           required
         />
         <PasswordInput placeholder="Senha" value={password} onChange={(event) => setPassword(event.target.value)} />
+        {error && <p role="alert" className="text-sm font-medium text-red-600">{error}</p>}
         <div className="text-right pt-1">
           <a href="#" className="text-sm font-semibold text-[#D9A000] lg:text-[#FFC72C] hover:underline">
             Esqueceu sua senha?
           </a>
         </div>
-        <AuthSubmitButton>Entrar</AuthSubmitButton>
+        <AuthSubmitButton disabled={submitting}>{submitting ? 'Entrando...' : 'Entrar'}</AuthSubmitButton>
       </form>
 
       <div className="auth-mobile-divider relative my-8 text-center flex items-center justify-center">

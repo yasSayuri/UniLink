@@ -8,17 +8,36 @@ import AuthLayout from '../components/auth/AuthLayout';
 import AuthSubmitButton from '../components/auth/AuthSubmitButton';
 import AuthSwitchLink from '../components/auth/AuthSwitchLink';
 import PasswordInput from '../components/auth/PasswordInput';
+import { register } from '../utils/authApi';
 
 export default function Register() {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    navigate('/feed');
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await register({ name, username, email, password });
+      navigate('/feed');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -43,16 +62,29 @@ export default function Register() {
           required
         />
         <AuthInput
+          icon={User}
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          minLength={3}
+          maxLength={30}
+          pattern="[A-Za-z0-9._]+"
+          title="Use de 3 a 30 letras, números, ponto ou sublinhado."
+          required
+        />
+        <AuthInput
           icon={Mail}
           type="email"
-          placeholder="E-mail institucional"
+          placeholder="E-mail"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
         />
-        <PasswordInput placeholder="Senha" value={password} onChange={(event) => setPassword(event.target.value)} />
+        <PasswordInput placeholder="Senha (mínimo de 8 caracteres)" value={password} onChange={(event) => setPassword(event.target.value)} />
         <PasswordInput placeholder="Confirmar senha" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
-        <AuthSubmitButton>Cadastrar</AuthSubmitButton>
+        {error && <p role="alert" className="text-sm font-medium text-red-600">{error}</p>}
+        <AuthSubmitButton disabled={submitting}>{submitting ? 'Cadastrando...' : 'Cadastrar'}</AuthSubmitButton>
       </form>
 
       <div className="auth-mobile-divider relative my-6 text-center flex items-center justify-center">

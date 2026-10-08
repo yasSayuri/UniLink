@@ -1,9 +1,10 @@
 import { ArrowRight } from 'lucide-react';
 
-export default function AuthSubmitButton({ children }) {
+export default function AuthSubmitButton({ children, disabled = false }) {
   return (
     <button
       type="submit"
+      disabled={disabled}
       className="large-auth-submit auth-mobile-submit w-full bg-[#FFC72C] hover:bg-[#f0ba28] text-slate-900 font-bold py-4 px-4 rounded-2xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 mt-4"
     >
       <span>{children}</span>

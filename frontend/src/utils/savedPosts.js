@@ -2,12 +2,11 @@ const SAVED_POSTS_KEY = 'unilink:saved-posts';
 export const SAVED_POSTS_CHANGED_EVENT = 'unilink:saved-posts-changed';
 
 export function getSavedPosts() {
-  try {
-    const savedPosts = JSON.parse(window.localStorage.getItem(SAVED_POSTS_KEY) || '[]');
-    return Array.isArray(savedPosts) ? savedPosts : [];
-  } catch {
-    return [];
+  const savedPosts = JSON.parse(window.localStorage.getItem(SAVED_POSTS_KEY) || '[]');
+  if (!Array.isArray(savedPosts)) {
+    throw new Error('A lista de publicações salvas está inválida.');
   }
+  return savedPosts;
 }
 
 export function isPostSaved(postId) {
@@ -21,12 +20,7 @@ export function toggleSavedPost(post) {
     ? savedPosts.filter((savedPost) => savedPost.id !== post.id)
     : [post, ...savedPosts];
 
-  try {
-    window.localStorage.setItem(SAVED_POSTS_KEY, JSON.stringify(updatedPosts));
-  } catch {
-    return false;
-  }
-
+  window.localStorage.setItem(SAVED_POSTS_KEY, JSON.stringify(updatedPosts));
   window.dispatchEvent(new Event(SAVED_POSTS_CHANGED_EVENT));
   return !isSaved;
 }
