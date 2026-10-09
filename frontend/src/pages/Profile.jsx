@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Camera, GraduationCap, MapPin, Pencil, UserPlus, X } from 'lucide-react';
+import { BookOpen, Camera, GraduationCap, MapPin, MoreVertical, Pencil, UserPlus, X } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import FeedHeader from '../components/feed/FeedHeader';
 import FeedMobileNav from '../components/feed/FeedMobileNav';
@@ -46,11 +46,13 @@ function userImagePosition(user, prefix) {
 
 export default function Profile() {
   const { userId: requestedProfileId } = useParams();
+  const savedUser = readSavedUser();
   const [user, setUser] = useState(readSavedUser);
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState('');
   const [loadedProfileKey, setLoadedProfileKey] = useState(null);
   const [followingBusy, setFollowingBusy] = useState(false);
+  const [followMenuOpen, setFollowMenuOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -60,13 +62,25 @@ export default function Profile() {
   const avatarInputRef = useRef(null);
   const headerInputRef = useRef(null);
   const imageDragRef = useRef(null);
-  const isOwnProfile = !requestedProfileId || requestedProfileId === user?.id;
+  const menuRef = useRef(null);
+  const isOwnProfile = !requestedProfileId || requestedProfileId === savedUser?.id;
   const profileKey = requestedProfileId || 'me';
   const loading = loadedProfileKey !== profileKey;
 
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setFollowMenuOpen(false);
+      }
+    };
+    if (followMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [followMenuOpen]);
+
+  useEffect(() => {
     let active = true;
-    const savedUser = readSavedUser();
     const profileRequest = requestedProfileId && requestedProfileId !== savedUser?.id
       ? getUserProfile(requestedProfileId)
       : getCurrentUser();
@@ -91,7 +105,7 @@ export default function Profile() {
     return () => {
       active = false;
     };
-  }, [profileKey, requestedProfileId]);
+  }, [profileKey, requestedProfileId, savedUser?.id]);
 
   const name = user?.name || 'Seu perfil';
   const username = user?.username ? `@${user.username}` : '';
@@ -186,7 +200,7 @@ export default function Profile() {
         <FeedSidebar />
 
         <main className="primary-scroll profile-scrollable min-w-0 space-y-4 lg:col-span-6 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <section className="overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div
               aria-hidden="true"
               className="h-48 bg-gradient-to-r from-slate-800 via-slate-700 to-amber-500 bg-cover bg-center sm:h-64"
@@ -211,31 +225,85 @@ export default function Profile() {
                       <Pencil className="h-3.5 w-3.5" />Editar perfil
                     </button>
                   )}
-                  {!isOwnProfile && user && (
-                    <button type="button" disabled={followingBusy} onClick={toggleProfileFollow} className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold disabled:opacity-50 ${user.following ? 'border-slate-300 text-slate-700' : 'border-amber-300 bg-amber-50 text-amber-800'}`}>
-                      <UserPlus className="h-3.5 w-3.5" />{user.following ? 'Seguindo' : 'Seguir'}
-                    </button>
-                  )}
                 </div>
               </div>
 
-              <div className="-mt-6">
-                <h2 className="text-lg font-extrabold leading-tight text-slate-900">{name}</h2>
-                {username && <p className="mt-0.5 text-xs text-slate-500">{username}</p>}
-                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500" aria-label="Estatísticas do perfil">
-                  <span><strong className="font-extrabold text-slate-800">{posts.length}</strong> posts</span>
-                  <button type="button" onClick={() => setConnectionsTab('following')} className="hover:underline">
-                    <strong className="font-extrabold text-slate-800">{user?.followingCount ?? 0}</strong> seguindo
-                  </button>
-                  <button type="button" onClick={() => setConnectionsTab('followers')} className="hover:underline">
-                    <strong className="font-extrabold text-slate-800">{user?.followersCount ?? 0}</strong> seguidores
-                  </button>
+              <div className="-mt-6 flex flex-col">
+                <div>
+                  <h2 className="text-lg font-extrabold leading-tight text-slate-900">{name}</h2>
+                  {username && <p className="mt-0.5 text-xs text-slate-500">{username}</p>}
                 </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                  {institutionAbbreviation && <span className="inline-flex items-center gap-1.5 font-bold text-slate-700"><GraduationCap className="h-3.5 w-3.5" />{institutionAbbreviation}</span>}
-                  {academicDetails.filter(({ label }) => label !== 'Instituição').map(({ label, value, icon: Icon }) => (
-                    <span key={label} className="inline-flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" />{value}</span>
-                  ))}
+                <div className="mt-auto flex items-end justify-between">
+                  <div>
+                    <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500" aria-label="Estatísticas do perfil">
+                      <span><strong className="font-extrabold text-slate-800">{posts.length}</strong> posts</span>
+                      <button type="button" onClick={() => setConnectionsTab('following')} className="hover:underline">
+                        <strong className="font-extrabold text-slate-800">{user?.followingCount ?? 0}</strong> seguindo
+                      </button>
+                      <button type="button" onClick={() => setConnectionsTab('followers')} className="hover:underline">
+                        <strong className="font-extrabold text-slate-800">{user?.followersCount ?? 0}</strong> seguidores
+                      </button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+                      {institutionAbbreviation && <span className="inline-flex items-center gap-1.5 font-bold text-slate-700"><GraduationCap className="h-3.5 w-3.5" />{institutionAbbreviation}</span>}
+                      {academicDetails.filter(({ label }) => label !== 'Instituição').map(({ label, value, icon: Icon }) => (
+                        <span key={label} className="inline-flex items-center gap-1.5"><Icon className="h-3.5 w-3.5" />{value}</span>
+                      ))}
+                    </div>
+                  </div>
+                  {!isOwnProfile && user && (
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        disabled={followingBusy}
+                        onClick={() => {
+                          if (user.following) {
+                            toggleProfileFollow();
+                          } else {
+                            toggleProfileFollow();
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-bold transition disabled:opacity-50 ${user.following ? 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200' : 'border-amber-300 bg-[#FFF3C4] text-amber-900 hover:bg-[#FFE99A]'}`}
+                      >
+                        {user.following ? 'Seguindo' : <><UserPlus className="h-3.5 w-3.5" />Seguir +</>}
+                      </button>
+                      <div className="relative flex items-center" ref={menuRef}>
+                        <button
+                          type="button"
+                          disabled={followingBusy}
+                          onClick={() => setFollowMenuOpen((current) => !current)}
+                          className="inline-flex items-center justify-center text-slate-600 transition hover:text-slate-800 hover:scale-110 disabled:opacity-50"
+                          aria-label="Mais opções"
+                        >
+                          <MoreVertical className="h-5 w-5" />
+                        </button>
+                        {followMenuOpen && (
+                          <div role="menu" className="absolute right-0 top-full z-[9999] mt-2 min-w-40 overflow-visible rounded-xl border border-slate-200 bg-white py-1 shadow-2xl">
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                setFollowMenuOpen(false);
+                              }}
+                              className="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                            >
+                              Bloquear
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                setFollowMenuOpen(false);
+                              }}
+                              className="block w-full px-4 py-2.5 text-left text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                            >
+                              Denunciar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

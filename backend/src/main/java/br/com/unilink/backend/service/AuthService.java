@@ -47,7 +47,6 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Esse e-mail já foi cadastrado.");
         }
 
-        communityCatalogService.ensureDefaultCommunities();
         User user = userRepository.save(new User(
                 username,
                 request.name().trim(),
