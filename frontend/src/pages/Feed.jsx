@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Calendar, MessageSquareText, UsersRound } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import FeedHeader from '../components/feed/FeedHeader';
 import FeedMobileNav from '../components/feed/FeedMobileNav';
 import FeedSidebar from '../components/feed/FeedSidebar';
@@ -8,7 +8,7 @@ import OnboardingModal from '../components/onboarding/OnboardingModal';
 import PostCard from '../components/feed/PostCard';
 import PostComposer from '../components/feed/PostComposer';
 import {
-  CONNECTIONS_CHANGED_EVENT, createPost, followUser, getCurrentUser, getPosts, getUserSuggestions,
+  CONNECTIONS_CHANGED_EVENT, createPost, followUser, getCurrentUser, getNotifications, getPosts, getUserSuggestions, markNotificationAsRead,
 } from '../utils/authApi';
 
 function readSavedUser() {
@@ -20,15 +20,19 @@ function readSavedUser() {
 }
 
 export default function Feed() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(readSavedUser);
   const [posts, setPosts] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [suggestionsError, setSuggestionsError] = useState('');
   const [loading, setLoading] = useState(true);
   const [suggestionsLoading, setSuggestionsLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [publishError, setPublishError] = useState('');
+  const topNotifications = notifications.slice(0, 3);
 
   useEffect(() => {
     let active = true;
@@ -68,6 +72,24 @@ export default function Feed() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const items = await getNotifications();
+        if (active) setNotifications(items);
+      } catch {
+        if (active) setNotifications([]);
+      }
+    };
+    loadNotifications();
+    const interval = window.setInterval(loadNotifications, 10000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
   const followSuggestedUser = async (person) => {
     try {
       await followUser(person.id);
@@ -90,6 +112,33 @@ export default function Feed() {
       setPublishing(false);
     }
   };
+
+  const openNotificationTarget = async (notification) => {
+    if (!notification.read) {
+      try {
+        await markNotificationAsRead(notification.id);
+        setNotifications((current) => current.map((item) => (
+          item.id === notification.id ? { ...item, read: true } : item
+        )));
+      } catch {
+        // mantém navegação
+      }
+    }
+    if (notification.targetPath) {
+      navigate(notification.targetPath);
+    }
+  };
+
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    if (!id) return;
+    const timeout = window.setTimeout(() => {
+      const target = document.getElementById(id);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+    return () => window.clearTimeout(timeout);
+  }, [location.hash, posts.length]);
 
   return (
     <div className="large-screen-dashboard min-h-screen bg-[#F4F5F7] pb-24 font-sans text-slate-700 lg:h-dvh lg:overflow-hidden lg:pb-0">
@@ -129,7 +178,17 @@ export default function Feed() {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-800">Atividades</h2>
             </div>
-            <p className="py-2 text-left text-xs leading-relaxed text-slate-500">Você já está sabendo de tudo! Quando houver novas atividades, elas aparecerão aqui.</p>
+            {topNotifications.length ? (
+              <div className="space-y-2">
+                {topNotifications.map((notification) => (
+                  <button key={notification.id} type="button" onClick={() => openNotificationTarget(notification)} className={`w-full rounded-xl px-3 py-2 text-left transition hover:bg-slate-50 ${notification.read ? 'bg-slate-50' : 'bg-amber-50/40'}`}>
+                    <p className="text-xs font-semibold text-slate-800">{notification.message}</p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="py-2 text-left text-xs leading-relaxed text-slate-500">Você já está sabendo de tudo! Quando houver novas atividades, elas aparecerão aqui.</p>
+            )}
           </section>
 
           <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
@@ -144,7 +203,9 @@ export default function Feed() {
               <div className="space-y-3">
                 {suggestions.map((person) => (
                   <div key={person.id} className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] text-xs font-bold text-slate-800">{person.name.charAt(0).toLocaleUpperCase('pt-BR')}</span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3C4] text-xs font-bold text-slate-800">
+                      {person.avatarUrl ? <img src={person.avatarUrl} alt="" className="h-full w-full object-cover" /> : person.name.charAt(0).toLocaleUpperCase('pt-BR')}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <Link to={`/perfil/${person.id}`} className="block truncate text-xs font-bold text-slate-800 hover:underline">{person.name}</Link>
                       <Link to={`/perfil/${person.id}`} className="block truncate text-[10px] text-slate-500 hover:underline">@{person.username}</Link>

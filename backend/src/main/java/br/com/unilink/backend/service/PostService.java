@@ -31,16 +31,19 @@ public class PostService {
     private final UserRepository userRepository;
     private final UserFollowRepository followRepository;
     private final CommunityRepository communityRepository;
+    private final NotificationService notificationService;
 
     public PostService(
             PostRepository postRepository,
             UserRepository userRepository,
             UserFollowRepository followRepository,
-            CommunityRepository communityRepository) {
+            CommunityRepository communityRepository,
+            NotificationService notificationService) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.followRepository = followRepository;
         this.communityRepository = communityRepository;
+        this.notificationService = notificationService;
     }
 
     public List<PostResponse> list(String viewerId) {
@@ -61,6 +64,7 @@ public class PostService {
         return postRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(post -> Objects.equals(post.getAuthorId(), profileId)
                         || post.getRepostedBy().contains(profileId))
+                .filter(post -> post.getCommunityName() == null)
                 .filter(post -> canViewPost(post, viewerId))
                 .map(post -> toResponse(
                         post,
@@ -114,6 +118,7 @@ public class PostService {
                 user.getId(),
                 user.getName(),
                 user.getUsername(),
+                user.getAvatarUrl(),
                 user.getInstitutionName(),
                 user.getCampus(),
                 content,
@@ -126,8 +131,15 @@ public class PostService {
 
     public PostResponse like(String userId, String postId) {
         Post post = findInteractablePost(postId, userId);
+        boolean wasLiked = post.getLikedBy().contains(userId);
         post.addLike(userId);
-        return toResponse(postRepository.save(post), userId, false);
+        Post saved = postRepository.save(post);
+        if (!wasLiked) {
+            var actor = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+            notificationService.notifyPostLiked(actor, saved);
+        }
+        return toResponse(saved, userId, false);
     }
 
     public PostResponse unlike(String userId, String postId) {
@@ -141,6 +153,34 @@ public class PostService {
         var author = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
         post.addComment(new PostComment(author, content.trim()));
+        Post saved = postRepository.save(post);
+        notificationService.notifyPostCommented(author, saved);
+        return toResponse(saved, userId, false);
+    }
+
+    public PostResponse editComment(String userId, String postId, String commentId, String content) {
+        Post post = findInteractablePost(postId, userId);
+        PostComment comment = post.findCommentById(commentId);
+        if (comment == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comentário não encontrado.");
+        }
+        if (!userId.equals(comment.getAuthorId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode editar seus próprios comentários.");
+        }
+        comment.updateContent(content.trim());
+        return toResponse(postRepository.save(post), userId, false);
+    }
+
+    public PostResponse deleteComment(String userId, String postId, String commentId) {
+        Post post = findInteractablePost(postId, userId);
+        PostComment comment = post.findCommentById(commentId);
+        if (comment == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Comentário não encontrado.");
+        }
+        if (!userId.equals(comment.getAuthorId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode excluir seus próprios comentários.");
+        }
+        post.removeCommentById(commentId);
         return toResponse(postRepository.save(post), userId, false);
     }
 
@@ -207,11 +247,18 @@ public class PostService {
     }
 
     private PostResponse toResponse(Post post, String viewerId, boolean reposted) {
+        String authorAvatarUrl = post.getAuthorAvatarUrl();
+        if (authorAvatarUrl == null || authorAvatarUrl.isBlank()) {
+            authorAvatarUrl = userRepository.findById(post.getAuthorId())
+                    .map(br.com.unilink.backend.model.User::getAvatarUrl)
+                    .orElse(null);
+        }
         return new PostResponse(
                 post.getId(),
                 post.getAuthorId(),
                 post.getAuthorName(),
                 post.getAuthorUsername(),
+                authorAvatarUrl,
                 post.getInstitutionName(),
                 post.getCampus(),
                 post.getContent(),
@@ -228,6 +275,7 @@ public class PostService {
                                 comment.getAuthorId(),
                                 comment.getAuthorName(),
                                 comment.getAuthorUsername(),
+                                comment.getAuthorAvatarUrl(),
                                 comment.getContent(),
                                 comment.getCreatedAt()))
                         .toList(),

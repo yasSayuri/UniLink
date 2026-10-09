@@ -26,6 +26,8 @@ public class Community {
 
     private String visibility;
 
+    private String ownerId;
+
     private List<String> memberIds = new ArrayList<>();
 
     private List<String> pendingRequestUserIds = new ArrayList<>();
@@ -41,13 +43,15 @@ public class Community {
             String category,
             String campus,
             String imageUrl,
-            String visibility) {
+            String visibility,
+            String ownerId) {
         this.name = name;
         this.description = description;
         this.category = category;
         this.campus = campus;
         this.imageUrl = imageUrl;
         this.visibility = visibility;
+        this.ownerId = ownerId;
         this.createdAt = Instant.now();
     }
 
@@ -77,6 +81,10 @@ public class Community {
 
     public String getVisibility() {
         return visibility;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
     }
 
     public List<String> getMemberIds() {
@@ -120,5 +128,22 @@ public class Community {
         if (!pendingRequestUserIds.contains(userId)) {
             pendingRequestUserIds.add(userId);
         }
+    }
+
+    public boolean hasPendingRequest(String userId) {
+        return pendingRequestUserIds != null && pendingRequestUserIds.contains(userId);
+    }
+
+    public void rejectMembershipRequest(String userId) {
+        if (pendingRequestUserIds != null) {
+            pendingRequestUserIds.remove(userId);
+        }
+    }
+
+    public boolean isOwner(String userId) {
+        if (ownerId != null && !ownerId.isBlank()) {
+            return ownerId.equals(userId);
+        }
+        return memberIds != null && !memberIds.isEmpty() && memberIds.get(0).equals(userId);
     }
 }

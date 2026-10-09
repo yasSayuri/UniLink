@@ -18,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,6 +39,9 @@ class PostServiceTest {
 
     @Mock
     private CommunityRepository communityRepository;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private PostService postService;
@@ -96,7 +100,7 @@ class PostServiceTest {
     void preventsPostingToACommunityTheUserHasNotJoined() {
         User user = new User("student", "Student", "student@example.com", "hash");
         Community community = new Community("Grupo de Estudos", "Description", "Estudos",
-                "Campo Mourão", "image", "PUBLIC");
+                "Campo Mourão", "image", "PUBLIC", "owner");
         when(userRepository.findById("viewer")).thenReturn(Optional.of(user));
         when(communityRepository.findByName("Grupo de Estudos")).thenReturn(Optional.of(community));
 
@@ -109,8 +113,11 @@ class PostServiceTest {
     @Test
     void persistsLikesAndReturnsViewerLikeState() {
         Post post = post("author", "PUBLIC");
+        User viewer = new User("viewer", "Viewer", "viewer@example.com", "hash");
+        ReflectionTestUtils.setField(viewer, "id", "viewer");
         ReflectionTestUtils.setField(post, "id", "post-id");
         when(postRepository.findById("post-id")).thenReturn(Optional.of(post));
+        when(userRepository.findById("viewer")).thenReturn(Optional.of(viewer));
         when(postRepository.save(any(Post.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         var result = postService.like("viewer", "post-id");
@@ -133,7 +140,56 @@ class PostServiceTest {
         org.junit.jupiter.api.Assertions.assertTrue(result.get(0).repostedByCurrentUser());
     }
 
+    @Test
+    void allowsCommentAuthorToEditOwnComment() {
+        Post post = post("author", "PUBLIC");
+        User commenter = new User("commenter", "Commenter", "commenter@example.com", "hash");
+        ReflectionTestUtils.setField(commenter, "id", "commenter");
+        post.addComment(new br.com.unilink.backend.model.PostComment(commenter, "texto antigo"));
+        String commentId = post.getComments().get(0).getId();
+        ReflectionTestUtils.setField(post, "id", "post-id");
+        when(postRepository.findById("post-id")).thenReturn(Optional.of(post));
+        when(postRepository.save(any(Post.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var updated = postService.editComment("commenter", "post-id", commentId, "texto novo");
+
+        assertEquals("texto novo", updated.comments().get(0).content());
+    }
+
+    @Test
+    void rejectsDeletingCommentFromAnotherUser() {
+        Post post = post("author", "PUBLIC");
+        User commenter = new User("commenter", "Commenter", "commenter@example.com", "hash");
+        ReflectionTestUtils.setField(commenter, "id", "commenter");
+        post.addComment(new br.com.unilink.backend.model.PostComment(commenter, "comentário"));
+        String commentId = post.getComments().get(0).getId();
+        ReflectionTestUtils.setField(post, "id", "post-id");
+        when(postRepository.findById("post-id")).thenReturn(Optional.of(post));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> postService.deleteComment("viewer", "post-id", commentId));
+
+        assertEquals("Você só pode excluir seus próprios comentários.", exception.getReason());
+    }
+
+    @Test
+    void hidesCommunityPostsFromProfileTimeline() {
+        Post profilePost = post("viewer", "PUBLIC");
+        Post communityPost = post("viewer", "PUBLIC", "Cálculo 3");
+        when(userRepository.existsById("viewer")).thenReturn(true);
+        when(postRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(profilePost, communityPost));
+
+        var result = postService.profilePosts("viewer", "viewer");
+
+        assertEquals(1, result.size());
+        assertEquals(null, result.get(0).communityName());
+    }
+
     private Post post(String authorId, String privacy) {
-        return new Post(authorId, "Student", "student", null, null, "Content", privacy, null, List.of(), List.of());
+        return new Post(authorId, "Student", "student", null, null, null, "Content", privacy, null, List.of(), List.of());
+    }
+
+    private Post post(String authorId, String privacy, String communityName) {
+        return new Post(authorId, "Student", "student", null, null, null, "Content", privacy, communityName, List.of(), List.of());
     }
 }

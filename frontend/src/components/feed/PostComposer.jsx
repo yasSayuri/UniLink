@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   FilePlus2, Globe, LockKeyhole, Megaphone, UsersRound,
 } from 'lucide-react';
@@ -34,6 +34,7 @@ export default function PostComposer({
   error = '',
   communityMode = false,
   communities = [],
+  fixedCommunityName = '',
   publishing = false,
 }) {
   const [content, setContent] = useState('');
@@ -46,6 +47,12 @@ export default function PostComposer({
   const mediaInputRef = useRef(null);
   const selectedAudience = audiences.find((item) => item.id === audience) || audiences[0];
   const AudienceIcon = selectedAudience.icon;
+
+  useEffect(() => {
+    if (fixedCommunityName) {
+      setCommunity(fixedCommunityName);
+    }
+  }, [fixedCommunityName]);
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -62,7 +69,10 @@ export default function PostComposer({
       contentType: item.contentType,
       dataUrl: item.dataUrl,
     }));
-    const published = await onSubmit(content.trim(), audience, community || null, mediaPayload);
+    const targetCommunity = communityMode
+      ? (fixedCommunityName || community || null)
+      : null;
+    const published = await onSubmit(content.trim(), audience, targetCommunity, mediaPayload);
     if (published) {
       setContent('');
       setMedia([]);
@@ -113,7 +123,7 @@ export default function PostComposer({
           ref={textareaRef}
           value={content}
           onChange={(event) => setContent(event.target.value)}
-          placeholder={communityMode ? 'Compartilhe algo com suas comunidades...' : 'No que você está pensando?'}
+          placeholder={communityMode ? (fixedCommunityName ? `Compartilhe algo no grupo ${fixedCommunityName}...` : 'Compartilhe algo com suas comunidades...') : 'No que você está pensando?'}
           maxLength={2000}
           rows={3}
           className="min-h-24 w-full resize-none overflow-hidden rounded-2xl bg-[#F1F3F6] px-5 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#FFC72C]"
@@ -155,7 +165,7 @@ export default function PostComposer({
               </div>
             )}
           </div>
-          {communityMode && (
+          {communityMode && !fixedCommunityName && (
             <div className="relative">
               <button
                 type="button"
@@ -189,7 +199,7 @@ export default function PostComposer({
             </div>
           )}
         </div>
-        <button type="submit" disabled={publishing || !content.trim() || (communityMode && !community)} className="rounded-xl bg-[#FFC72C] px-5 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="submit" disabled={publishing || !content.trim() || (communityMode && !fixedCommunityName && !community)} className="rounded-xl bg-[#FFC72C] px-5 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50">
           {publishing ? 'Publicando...' : 'Publicar'}
         </button>
       </div>

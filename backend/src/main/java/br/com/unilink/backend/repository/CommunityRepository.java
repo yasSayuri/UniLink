@@ -8,8 +8,10 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 public interface CommunityRepository extends MongoRepository<Community, String> {
 
     boolean existsByName(String name);
+    boolean existsByNameIgnoreCase(String name);
 
     List<Community> findAllByOrderByNameAsc();
+    List<Community> findAllByOwnerIdOrderByNameAsc(String ownerId);
 
     Optional<Community> findByName(String name);
 }

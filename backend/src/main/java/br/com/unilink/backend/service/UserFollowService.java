@@ -14,21 +14,28 @@ public class UserFollowService {
 
     private final UserFollowRepository followRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public UserFollowService(UserFollowRepository followRepository, UserRepository userRepository) {
+    public UserFollowService(
+            UserFollowRepository followRepository,
+            UserRepository userRepository,
+            NotificationService notificationService) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     public void follow(String followerId, String followedId) {
         if (followerId.equals(followedId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você não pode seguir a si mesmo.");
         }
-        if (!userRepository.existsById(followedId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
-        }
+        var follower = userRepository.findById(followerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        var followed = userRepository.findById(followedId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
         if (!followRepository.existsByFollowerIdAndFollowedId(followerId, followedId)) {
             followRepository.save(new UserFollow(followerId, followedId));
+            notificationService.notifyUserFollowed(follower, followed);
         }
     }
 

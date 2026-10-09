@@ -7,6 +7,7 @@ public record PostCommentResponse(
         String authorId,
         String authorName,
         String authorUsername,
+        String authorAvatarUrl,
         String content,
         Instant createdAt) {
 }

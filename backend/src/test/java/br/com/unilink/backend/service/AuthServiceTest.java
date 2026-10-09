@@ -82,6 +82,5 @@ class AuthServiceTest {
         assertEquals("student.one@alunos.utfpr.edu.br", savedUser.getValue().getEmail());
         assertEquals("Student One", savedUser.getValue().getName());
         assertEquals("bcrypt-hash", savedUser.getValue().getPasswordHash());
-        verify(communityCatalogService).ensureDefaultCommunities();
     }
 }

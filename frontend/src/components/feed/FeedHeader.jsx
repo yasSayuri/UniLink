@@ -2,7 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import { Bell, ChevronDown, LogOut, Search, User, UserPlus, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import UniLinkLogo from '../branding/UniLinkLogo';
-import { followUser, searchUsers, unfollowUser } from '../../utils/authApi';
+import {
+  followUser, getNotifications, markNotificationAsRead, searchUsers, unfollowUser,
+} from '../../utils/authApi';
+
+function formatNotificationTime(createdAt) {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'Agora';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} d`;
+  return created.toLocaleDateString('pt-BR');
+}
 
 export default function FeedHeader() {
   const [user] = useState(() => {
@@ -19,12 +35,17 @@ export default function FeedHeader() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [busyUserId, setBusyUserId] = useState('');
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsError, setNotificationsError] = useState('');
   const profileMenuRef = useRef(null);
   const profileButtonRef = useRef(null);
+  const notificationRef = useRef(null);
   const searchRef = useRef(null);
   const navigate = useNavigate();
   const firstName = user?.name?.trim().split(/\s+/)[0] || 'Perfil';
   const initial = firstName.charAt(0).toLocaleUpperCase('pt-BR') || '?';
+  const unreadCount = notifications.filter((item) => !item.read).length;
 
   useEffect(() => {
     if (!profileMenuOpen) return undefined;
@@ -90,6 +111,47 @@ export default function FeedHeader() {
     return () => document.removeEventListener('pointerdown', closeSearchOnOutsideClick);
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const items = await getNotifications();
+        if (active) {
+          setNotifications(items);
+          setNotificationsError('');
+        }
+      } catch (error) {
+        if (active) setNotificationsError(error.message);
+      }
+    };
+    loadNotifications();
+    const interval = window.setInterval(loadNotifications, 10000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!notificationOpen) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!notificationRef.current?.contains(event.target)) {
+        setNotificationOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') {
+        setNotificationOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [notificationOpen]);
+
   const toggleFollow = async (person) => {
     setBusyUserId(person.id);
     setSearchError('');
@@ -111,6 +173,23 @@ export default function FeedHeader() {
     localStorage.removeItem('unilink.token');
     localStorage.removeItem('unilink.user');
     navigate('/login', { replace: true });
+  };
+
+  const openNotificationTarget = async (notification) => {
+    if (!notification.read) {
+      try {
+        await markNotificationAsRead(notification.id);
+        setNotifications((current) => current.map((item) => (
+          item.id === notification.id ? { ...item, read: true } : item
+        )));
+      } catch (error) {
+        setNotificationsError(error.message);
+      }
+    }
+    setNotificationOpen(false);
+    if (notification.targetPath) {
+      navigate(notification.targetPath);
+    }
   };
 
   return (
@@ -157,7 +236,9 @@ export default function FeedHeader() {
               ) : searchResults.length ? searchResults.map((person) => (
                 <div key={person.id} role="option" aria-selected="false" className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50">
                   <Link to={`/perfil/${person.id}`} onClick={() => setSearchOpen(false)} className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] text-sm font-bold text-slate-800">{person.name.charAt(0).toLocaleUpperCase('pt-BR')}</span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3C4] text-sm font-bold text-slate-800">
+                      {person.avatarUrl ? <img src={person.avatarUrl} alt="" className="h-full w-full object-cover" /> : person.name.charAt(0).toLocaleUpperCase('pt-BR')}
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-xs font-bold text-slate-800">{person.name}</span>
                       <span className="block truncate text-[11px] text-slate-500">@{person.username}{person.course ? ` · ${person.course}` : ''}</span>
@@ -176,9 +257,53 @@ export default function FeedHeader() {
       </div>
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:gap-3">
-        <button aria-label="Notificações" className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-all hover:bg-slate-200 sm:h-10 sm:w-10">
-          <Bell className="w-5 h-5" />
-        </button>
+        <div className="relative" ref={notificationRef}>
+          <button
+            type="button"
+            onClick={() => setNotificationOpen((open) => !open)}
+            aria-label="Notificações"
+            aria-expanded={notificationOpen}
+            aria-haspopup="dialog"
+            className={`relative flex h-9 w-9 items-center justify-center rounded-full transition-all sm:h-10 sm:w-10 ${unreadCount ? 'bg-[#FFF3C4] text-[#D9A000] hover:bg-[#FFE99A]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          >
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
+          {notificationOpen && (
+            <section role="dialog" aria-label="Notificações" className="absolute right-0 top-full z-[80] mt-2 w-[360px] max-w-[92vw] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
+              <header className="border-b border-slate-100 px-4 py-3">
+                <h2 className="text-base font-extrabold text-slate-800">Notificações</h2>
+              </header>
+              <div className="max-h-96 overflow-y-auto p-2">
+                {notificationsError ? (
+                  <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">{notificationsError}</p>
+                ) : notifications.length ? notifications.map((notification) => (
+                  <button
+                    key={notification.id}
+                    type="button"
+                    onClick={() => openNotificationTarget(notification)}
+                    className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-slate-50 ${notification.read ? 'opacity-80' : 'bg-amber-50/40'}`}
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3C4] text-sm font-bold text-slate-800">
+                      {notification.actorAvatarUrl ? <img src={notification.actorAvatarUrl} alt="" className="h-full w-full object-cover" /> : notification.actorName?.charAt(0).toLocaleUpperCase('pt-BR') || 'N'}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-semibold text-slate-800">{notification.message}</span>
+                      <span className="mt-1 block text-[11px] text-slate-500">{formatNotificationTime(notification.createdAt)}</span>
+                    </span>
+                    {!notification.read && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[#D9A000]" />}
+                  </button>
+                )) : (
+                  <p className="px-3 py-4 text-center text-xs text-slate-500">Você não tem notificações no momento.</p>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
 
         <div className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
 
@@ -192,8 +317,8 @@ export default function FeedHeader() {
             aria-expanded={profileMenuOpen}
             aria-haspopup="menu"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FFC72C] font-bold text-slate-800">
-              {initial}
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[#FFC72C] font-bold text-slate-800">
+              {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" /> : initial}
             </span>
             <span className="max-w-16 truncate text-xs font-semibold text-slate-700 sm:max-w-none sm:text-sm">{firstName}</span>
             <ChevronDown className={`hidden h-4 w-4 text-slate-500 transition-transform sm:block ${profileMenuOpen ? 'rotate-180' : ''}`} />

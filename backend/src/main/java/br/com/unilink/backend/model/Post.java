@@ -18,6 +18,7 @@ public class Post {
     private String authorName;
 
     private String authorUsername;
+    private String authorAvatarUrl;
 
     private String institutionName;
 
@@ -48,6 +49,7 @@ public class Post {
             String authorId,
             String authorName,
             String authorUsername,
+            String authorAvatarUrl,
             String institutionName,
             String campus,
             String content,
@@ -58,6 +60,7 @@ public class Post {
         this.authorId = authorId;
         this.authorName = authorName;
         this.authorUsername = authorUsername;
+        this.authorAvatarUrl = authorAvatarUrl;
         this.institutionName = institutionName;
         this.campus = campus;
         this.content = content;
@@ -82,6 +85,10 @@ public class Post {
 
     public String getAuthorUsername() {
         return authorUsername;
+    }
+
+    public String getAuthorAvatarUrl() {
+        return authorAvatarUrl;
     }
 
     public String getInstitutionName() {
@@ -142,6 +149,23 @@ public class Post {
         comments.add(comment);
     }
 
+    public PostComment findCommentById(String commentId) {
+        if (comments == null) {
+            return null;
+        }
+        return comments.stream()
+                .filter(comment -> comment.getId().equals(commentId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public boolean removeCommentById(String commentId) {
+        if (comments == null) {
+            return false;
+        }
+        return comments.removeIf(comment -> comment.getId().equals(commentId));
+    }
+
     public void addRepost(String userId) {
         if (repostedBy == null) repostedBy = new ArrayList<>();
         if (!repostedBy.contains(userId)) repostedBy.add(userId);
@@ -155,6 +179,7 @@ public class Post {
         this.authorId = author.getId();
         this.authorName = author.getName();
         this.authorUsername = author.getUsername();
+        this.authorAvatarUrl = author.getAvatarUrl();
         this.institutionName = author.getInstitutionName();
         this.campus = author.getCampus();
     }

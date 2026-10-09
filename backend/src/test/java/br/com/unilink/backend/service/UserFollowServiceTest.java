@@ -30,12 +30,20 @@ class UserFollowServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     @InjectMocks
     private UserFollowService userFollowService;
 
     @Test
     void createsOneFollowRelationshipWhenTargetExists() {
-        when(userRepository.existsById("target")).thenReturn(true);
+        User follower = new User("viewer", "Viewer", "viewer@example.test", "hash");
+        User followed = new User("target", "Target User", "target@example.test", "hash");
+        ReflectionTestUtils.setField(follower, "id", "viewer");
+        ReflectionTestUtils.setField(followed, "id", "target");
+        when(userRepository.findById("viewer")).thenReturn(Optional.of(follower));
+        when(userRepository.findById("target")).thenReturn(Optional.of(followed));
         when(followRepository.existsByFollowerIdAndFollowedId("viewer", "target")).thenReturn(false);
 
         userFollowService.follow("viewer", "target");
@@ -44,22 +52,29 @@ class UserFollowServiceTest {
         verify(followRepository).save(savedFollow.capture());
         assertEquals("viewer", savedFollow.getValue().getFollowerId());
         assertEquals("target", savedFollow.getValue().getFollowedId());
+        verify(notificationService).notifyUserFollowed(follower, followed);
     }
 
     @Test
     void followingTheSameUserTwiceDoesNotCreateDuplicateRelationships() {
-        when(userRepository.existsById("target")).thenReturn(true);
+        User follower = new User("viewer", "Viewer", "viewer@example.test", "hash");
+        User followed = new User("target", "Target User", "target@example.test", "hash");
+        ReflectionTestUtils.setField(follower, "id", "viewer");
+        ReflectionTestUtils.setField(followed, "id", "target");
+        when(userRepository.findById("viewer")).thenReturn(Optional.of(follower));
+        when(userRepository.findById("target")).thenReturn(Optional.of(followed));
         when(followRepository.existsByFollowerIdAndFollowedId("viewer", "target")).thenReturn(true);
 
         userFollowService.follow("viewer", "target");
 
         verify(followRepository, never()).save(any(UserFollow.class));
+        verify(notificationService, never()).notifyUserFollowed(any(User.class), any(User.class));
     }
 
     @Test
     void rejectsFollowingYourself() {
         assertThrows(ResponseStatusException.class, () -> userFollowService.follow("viewer", "viewer"));
-        verify(userRepository, never()).existsById("viewer");
+        verify(userRepository, never()).findById("viewer");
     }
 
     @Test

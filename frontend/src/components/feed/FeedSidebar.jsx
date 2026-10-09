@@ -36,13 +36,14 @@ export default function FeedSidebar({
   eventView = 'discover',
   onEventViewChange,
   onCreateEvent,
+  onCreateCommunity,
 }) {
   const isCommunities = activeItem === 'communities';
   const isEvents = activeItem === 'events';
   const navigation = [
     { id: 'home', label: 'Início', path: '/feed', icon: Home },
     { id: 'support', label: 'Apoio universitário', path: '/apoio-universitario', icon: Compass },
-    { id: 'communities', label: 'Comunidades', path: '/comunidades', icon: Users },
+    { id: 'communities', label: 'Grupos', path: '/comunidades', icon: Users },
     { id: 'saved', label: 'Salvos', path: '/salvos', icon: Bookmark },
     { id: 'events', label: 'Eventos', path: '/eventos', icon: Calendar },
     { id: 'settings', label: 'Configurações', path: '/configuracoes', icon: Settings },
@@ -61,31 +62,34 @@ export default function FeedSidebar({
       {isCommunities ? (
         <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-800">Grupos</h2>
-            <button type="button" title="Configurações de grupos" aria-label="Configurações de grupos" className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100"><SlidersHorizontal className="h-4 w-4" /></button>
+            <h2 className="text-sm font-bold text-slate-800">Seus grupos</h2>
           </div>
           <label className="relative block">
             <span className="sr-only">Buscar grupos</span>
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input type="search" value={communitySearch} onChange={(event) => onCommunitySearchChange?.(event.target.value)} placeholder="Buscar grupos" className="w-full rounded-full bg-slate-100 py-2 pl-9 pr-3 text-xs text-slate-700 outline-none transition focus:ring-2 focus:ring-amber-200" />
           </label>
-          <nav aria-label="Navegação de grupos" className="space-y-1 border-b border-slate-100 pb-3">
-            <button type="button" onClick={() => onCommunitySelect?.('all')} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${selectedCommunity === 'all' ? 'bg-slate-100 text-slate-800' : 'text-slate-600 hover:bg-slate-50'}`}>
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-white"><Home className="h-4 w-4" /></span>Seu feed
-            </button>
-            {communities.filter((community) => community.name.toLocaleLowerCase('pt-BR').includes(communitySearch.toLocaleLowerCase('pt-BR'))).map((community) => (
+          <div className="space-y-2 border-b border-slate-100 pb-3">
+            <nav aria-label="Grupos em que você participa" className="space-y-1">
+              {communities
+                .filter((community) => community.member)
+                .filter((community) => community.name.toLocaleLowerCase('pt-BR').includes(communitySearch.toLocaleLowerCase('pt-BR')))
+                .map((community) => (
               <button key={community.id} type="button" onClick={() => onCommunitySelect?.(community.name)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${selectedCommunity === community.name ? 'bg-slate-100 text-slate-800' : 'text-slate-600 hover:bg-slate-50'}`}>
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"><Users className="h-4 w-4" /></span><span className="truncate">{community.name}</span>
               </button>
-            ))}
-          </nav>
-          <button type="button" className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100">
+              ))}
+              {!communities
+                .filter((community) => community.member)
+                .filter((community) => community.name.toLocaleLowerCase('pt-BR').includes(communitySearch.toLocaleLowerCase('pt-BR')))
+                .length && (
+                <p className="px-3 py-2.5 text-xs text-slate-500">Você ainda não está em nenhum grupo.</p>
+              )}
+            </nav>
+          </div>
+          <button type="button" onClick={onCreateCommunity} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100">
             <Plus className="h-4 w-4" />Criar novo grupo
           </button>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between px-1"><h3 className="text-xs font-bold text-slate-800">Comunidades para explorar</h3></div>
-            {!communities.length && <p className="px-2 py-3 text-center text-xs text-slate-400">Nenhuma comunidade disponível.</p>}
-          </div>
         </section>
       ) : isEvents ? (
         <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">

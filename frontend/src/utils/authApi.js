@@ -124,6 +124,16 @@ export function getCommunityPosts() {
   return apiRequest('/api/v1/communities/posts');
 }
 
+export function getNotifications() {
+  return apiRequest('/api/v1/notifications');
+}
+
+export function markNotificationAsRead(notificationId) {
+  return apiRequest(`/api/v1/notifications/${encodeURIComponent(notificationId)}/read`, {
+    method: 'PATCH',
+  });
+}
+
 export function searchUsers(query) {
   return apiRequest(`/api/v1/users/search?q=${encodeURIComponent(query)}`);
 }
@@ -134,6 +144,35 @@ export function getUserSuggestions() {
 
 export function joinCommunity(communityId) {
   return apiRequest(`/api/v1/communities/${encodeURIComponent(communityId)}/join`, { method: 'POST' });
+}
+
+export function getCommunityJoinRequests() {
+  return apiRequest('/api/v1/communities/requests');
+}
+
+export function approveCommunityJoinRequest(communityId, requesterId) {
+  return apiRequest(`/api/v1/communities/${encodeURIComponent(communityId)}/requests/${encodeURIComponent(requesterId)}/approve`, {
+    method: 'POST',
+  });
+}
+
+export function rejectCommunityJoinRequest(communityId, requesterId) {
+  return apiRequest(`/api/v1/communities/${encodeURIComponent(communityId)}/requests/${encodeURIComponent(requesterId)}/reject`, {
+    method: 'POST',
+  });
+}
+
+export function createCommunity(community) {
+  return apiRequest('/api/v1/communities', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: community.name,
+      description: community.description,
+      category: community.category,
+      visibility: community.visibility,
+      imageUrl: community.imageUrl,
+    }),
+  });
 }
 
 export function updateProfile(profile) {
@@ -177,6 +216,19 @@ export function commentOnPost(postId, content) {
   return apiRequest(`/api/v1/posts/${encodeURIComponent(postId)}/comments`, {
     method: 'POST',
     body: JSON.stringify({ content }),
+  });
+}
+
+export function editCommentOnPost(postId, commentId, content) {
+  return apiRequest(`/api/v1/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function deleteCommentOnPost(postId, commentId) {
+  return apiRequest(`/api/v1/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`, {
+    method: 'DELETE',
   });
 }
 

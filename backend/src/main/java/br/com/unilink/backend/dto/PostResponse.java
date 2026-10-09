@@ -9,6 +9,7 @@ public record PostResponse(
         String authorId,
         String authorName,
         String authorUsername,
+        String authorAvatarUrl,
         String institutionName,
         String campus,
         String content,

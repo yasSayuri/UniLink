@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -55,6 +56,23 @@ public class PostController {
             @PathVariable String postId,
             @Valid @RequestBody CreateCommentRequest request) {
         return postService.comment(principal.getName(), postId, request.content());
+    }
+
+    @PatchMapping("/{postId}/comments/{commentId}")
+    public PostResponse editComment(
+            Principal principal,
+            @PathVariable String postId,
+            @PathVariable String commentId,
+            @Valid @RequestBody CreateCommentRequest request) {
+        return postService.editComment(principal.getName(), postId, commentId, request.content());
+    }
+
+    @DeleteMapping("/{postId}/comments/{commentId}")
+    public PostResponse deleteComment(
+            Principal principal,
+            @PathVariable String postId,
+            @PathVariable String commentId) {
+        return postService.deleteComment(principal.getName(), postId, commentId);
     }
 
     @PostMapping("/{postId}/reposts")
