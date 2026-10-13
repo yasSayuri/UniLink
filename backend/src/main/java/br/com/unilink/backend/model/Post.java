@@ -116,7 +116,7 @@ public class Post {
     }
 
     public List<String> getHashtags() {
-        return hashtags;
+        return hashtags == null ? List.of() : hashtags;
     }
 
     public Instant getCreatedAt() {

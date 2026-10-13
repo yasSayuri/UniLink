@@ -3,7 +3,7 @@ import { Bell, ChevronDown, LogOut, Search, User, UserPlus, X } from 'lucide-rea
 import { Link, useNavigate } from 'react-router-dom';
 import UniLinkLogo from '../branding/UniLinkLogo';
 import {
-  followUser, getNotifications, markNotificationAsRead, searchUsers, unfollowUser,
+  followUser, getNotifications, markAllNotificationsAsRead, markNotificationAsRead, searchUsers, unfollowUser,
 } from '../../utils/authApi';
 
 function formatNotificationTime(createdAt) {
@@ -192,6 +192,19 @@ export default function FeedHeader() {
     }
   };
 
+  const toggleNotifications = async () => {
+    const nextOpen = !notificationOpen;
+    if (nextOpen && unreadCount > 0) {
+      try {
+        await markAllNotificationsAsRead();
+        setNotifications((current) => current.map((item) => ({ ...item, read: true })));
+      } catch (error) {
+        setNotificationsError(error.message);
+      }
+    }
+    setNotificationOpen(nextOpen);
+  };
+
   return (
     <header className="sticky top-0 z-50 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-slate-200/80 bg-white px-3 py-2 shadow-sm sm:flex sm:justify-between sm:gap-3 sm:px-4 sm:py-3 md:px-8">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -260,7 +273,7 @@ export default function FeedHeader() {
         <div className="relative" ref={notificationRef}>
           <button
             type="button"
-            onClick={() => setNotificationOpen((open) => !open)}
+            onClick={toggleNotifications}
             aria-label="Notificações"
             aria-expanded={notificationOpen}
             aria-haspopup="dialog"

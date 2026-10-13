@@ -35,6 +35,11 @@ public class PostController {
         return postService.list(principal.getName());
     }
 
+    @GetMapping("/hashtags/{hashtag}")
+    public List<PostResponse> listByHashtag(Principal principal, @PathVariable String hashtag) {
+        return postService.listByHashtag(hashtag, principal.getName());
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PostResponse create(Principal principal, @Valid @RequestBody CreatePostRequest request) {

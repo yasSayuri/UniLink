@@ -134,6 +134,10 @@ export function markNotificationAsRead(notificationId) {
   });
 }
 
+export function markAllNotificationsAsRead() {
+  return apiRequest('/api/v1/notifications/read-all', { method: 'PATCH' });
+}
+
 export function searchUsers(query) {
   return apiRequest(`/api/v1/users/search?q=${encodeURIComponent(query)}`);
 }
@@ -195,6 +199,10 @@ export function updateProfile(profile) {
 
 export function getPosts() {
   return apiRequest('/api/v1/posts');
+}
+
+export function getPostsByHashtag(hashtag) {
+  return apiRequest(`/api/v1/posts/hashtags/${encodeURIComponent(hashtag)}`);
 }
 
 export function createPost(content, privacy = 'PUBLIC', communityName = null, media = []) {

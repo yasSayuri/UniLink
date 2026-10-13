@@ -5,6 +5,8 @@ import br.com.unilink.backend.service.NotificationService;
 import java.security.Principal;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,5 +30,11 @@ public class NotificationController {
     @PatchMapping("/{notificationId}/read")
     public NotificationResponse markAsRead(Principal principal, @PathVariable String notificationId) {
         return notificationService.markAsRead(principal.getName(), notificationId);
+    }
+
+    @PatchMapping("/read-all")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markAllAsRead(Principal principal) {
+        notificationService.markAllAsRead(principal.getName());
     }
 }

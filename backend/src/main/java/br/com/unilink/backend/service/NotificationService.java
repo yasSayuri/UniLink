@@ -36,6 +36,14 @@ public class NotificationService {
         return toResponse(notificationRepository.save(notification));
     }
 
+    public void markAllAsRead(String userId) {
+        var notifications = notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
+        notifications.stream()
+                .filter(notification -> !notification.isRead())
+                .forEach(Notification::markAsRead);
+        notificationRepository.saveAll(notifications);
+    }
+
     public void notifyPostLiked(User actor, Post post) {
         if (actor.getId().equals(post.getAuthorId())) {
             return;

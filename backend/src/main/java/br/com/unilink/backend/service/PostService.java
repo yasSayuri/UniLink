@@ -62,6 +62,17 @@ public class PostService {
                 .toList();
     }
 
+    public List<PostResponse> listByHashtag(String hashtag, String viewerId) {
+        String normalizedHashtag = hashtag.trim().toLowerCase(java.util.Locale.ROOT);
+        return postRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(post -> post.getHashtags().stream()
+                        .anyMatch(item -> normalizedHashtag.equals(item.toLowerCase(java.util.Locale.ROOT))))
+                .filter(post -> post.getPrivacy() == null || "PUBLIC".equals(post.getPrivacy()))
+                .filter(post -> post.getCommunityName() == null || canViewPost(post, viewerId))
+                .map(post -> toResponse(post, viewerId, false))
+                .toList();
+    }
+
     public List<PostResponse> profilePosts(String profileId, String viewerId) {
         if (!userRepository.existsById(profileId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
