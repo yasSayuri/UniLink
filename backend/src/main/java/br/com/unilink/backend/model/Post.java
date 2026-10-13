@@ -183,4 +183,9 @@ public class Post {
         this.institutionName = author.getInstitutionName();
         this.campus = author.getCampus();
     }
+
+    public void updateContent(String content, List<String> hashtags) {
+        this.content = content;
+        this.hashtags = hashtags;
+    }
 }

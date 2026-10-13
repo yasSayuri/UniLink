@@ -6,6 +6,7 @@ import java.util.List;
 import br.com.unilink.backend.dto.CreatePostRequest;
 import br.com.unilink.backend.dto.CreateCommentRequest;
 import br.com.unilink.backend.dto.PostResponse;
+import br.com.unilink.backend.dto.UpdatePostRequest;
 import br.com.unilink.backend.service.PostService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,20 @@ public class PostController {
     @ResponseStatus(HttpStatus.CREATED)
     public PostResponse create(Principal principal, @Valid @RequestBody CreatePostRequest request) {
         return postService.create(principal.getName(), request);
+    }
+
+    @PatchMapping("/{postId}")
+    public PostResponse edit(
+            Principal principal,
+            @PathVariable String postId,
+            @Valid @RequestBody UpdatePostRequest request) {
+        return postService.edit(principal.getName(), postId, request.content());
+    }
+
+    @DeleteMapping("/{postId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(Principal principal, @PathVariable String postId) {
+        postService.delete(principal.getName(), postId);
     }
 
     @PostMapping("/{postId}/likes")

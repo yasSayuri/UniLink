@@ -204,6 +204,17 @@ export function createPost(content, privacy = 'PUBLIC', communityName = null, me
   });
 }
 
+export function editPost(postId, content) {
+  return apiRequest(`/api/v1/posts/${encodeURIComponent(postId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function deletePost(postId) {
+  return apiRequest(`/api/v1/posts/${encodeURIComponent(postId)}`, { method: 'DELETE' });
+}
+
 export function likePost(postId) {
   return apiRequest(`/api/v1/posts/${encodeURIComponent(postId)}/likes`, { method: 'POST' });
 }

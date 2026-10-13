@@ -4,9 +4,9 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Avatar from './Avatar';
-import { isPostSaved, SAVED_POSTS_CHANGED_EVENT, toggleSavedPost } from '../../utils/savedPosts';
+import { isPostSaved, removeSavedPost, SAVED_POSTS_CHANGED_EVENT, toggleSavedPost } from '../../utils/savedPosts';
 import {
-  commentOnPost, deleteCommentOnPost, editCommentOnPost, likePost, repostPost, undoRepost, unlikePost,
+  commentOnPost, deleteCommentOnPost, deletePost, editCommentOnPost, editPost, likePost, repostPost, undoRepost, unlikePost,
 } from '../../utils/authApi';
 
 function formatPostTime(createdAt) {
@@ -32,6 +32,7 @@ export default function PostCard({
   isFollowing = false,
   onFollowToggle,
   showCommunityAuthor = false,
+  onDeleted,
 }) {
   const currentUser = (() => {
     try {
@@ -42,6 +43,8 @@ export default function PostCard({
   })();
   const authorAvatarUrl = post.authorId === currentUser?.id ? currentUser.avatarUrl : post.authorAvatarUrl;
   const [isSaved, setIsSaved] = useState(() => isPostSaved(post.id));
+  const [postContent, setPostContent] = useState(post.content);
+  const [postHashtags, setPostHashtags] = useState(post.hashtags || []);
   const [notification, setNotification] = useState('');
   const [liked, setLiked] = useState(Boolean(post.likedByCurrentUser));
   const [likesCount, setLikesCount] = useState(post.likes || 0);
@@ -52,6 +55,9 @@ export default function PostCard({
   const [visibleCommentsCount, setVisibleCommentsCount] = useState(2);
   const [editingCommentId, setEditingCommentId] = useState('');
   const [editingCommentDraft, setEditingCommentDraft] = useState('');
+  const [editingPost, setEditingPost] = useState(false);
+  const [editingPostDraft, setEditingPostDraft] = useState(post.content);
+  const [deleted, setDeleted] = useState(false);
   const [busy, setBusy] = useState(false);
   const timeLabel = formatPostTime(post.createdAt);
   const authorName = post.authorName;
@@ -173,12 +179,46 @@ export default function PostCard({
     }
   };
 
+  const saveEditedPost = async () => {
+    const text = editingPostDraft.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    try {
+      const updated = await editPost(post.id, text);
+      setPostContent(updated.content);
+      setPostHashtags(updated.hashtags || []);
+      setEditingPost(false);
+      setNotification('Publicação editada!');
+    } catch (error) {
+      setNotification(error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removePost = async () => {
+    if (busy || !window.confirm('Excluir esta publicação?')) return;
+    setBusy(true);
+    try {
+      await deletePost(post.id);
+      removeSavedPost(post.id);
+      setDeleted(true);
+      onDeleted?.(post.id);
+    } catch (error) {
+      setNotification(error.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (deleted) return null;
+
   return (
     <article id={`post-${post.id}`} className="relative space-y-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
       {post.reposted && <p className="flex items-center gap-2 text-xs font-semibold text-emerald-700"><Repeat2 className="h-4 w-4" />Repostado</p>}
-      <header className="flex items-center gap-3">
+      <header className="flex items-start gap-3">
         {authorAvatarUrl ? <img src={authorAvatarUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" /> : <Avatar className="bg-[#FFC72C] text-white" />}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {showCommunityAuthor ? (
             <Link to={`/perfil/${post.authorId}`} className="truncate text-sm font-bold text-slate-800 hover:underline">{authorName}</Link>
           ) : (
@@ -201,9 +241,35 @@ export default function PostCard({
             <UserPlus className="h-3.5 w-3.5" />{isFollowing ? 'Seguindo' : 'Seguir'}
           </button>
         )}
+        {post.authorId === currentUser?.id && (
+          <div className="ml-auto flex shrink-0 items-start gap-2">
+            <button type="button" disabled={busy} onClick={() => { setEditingPost(true); setEditingPostDraft(postContent); }} aria-label="Editar publicação" title="Editar publicação" className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50">
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button type="button" disabled={busy} onClick={removePost} aria-label="Excluir publicação" title="Excluir publicação" className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </header>
 
-      <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">{post.content}</p>
+      {editingPost ? (
+        <div className="space-y-2">
+          <textarea
+            value={editingPostDraft}
+            onChange={(event) => setEditingPostDraft(event.target.value)}
+            maxLength={2000}
+            rows={4}
+            className="w-full resize-none rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-amber-300"
+          />
+          <div className="flex items-center gap-2">
+            <button type="button" disabled={busy || !editingPostDraft.trim()} onClick={saveEditedPost} className="rounded-lg bg-[#FFC72C] px-3 py-1.5 text-xs font-bold text-slate-900 disabled:opacity-50">Salvar</button>
+            <button type="button" disabled={busy} onClick={() => setEditingPost(false)} className="rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50">Cancelar</button>
+          </div>
+        </div>
+      ) : (
+        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">{postContent}</p>
+      )}
 
       {post.media?.length > 0 && (
         <div className={`grid gap-2 ${post.media.length > 1 ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
@@ -219,9 +285,9 @@ export default function PostCard({
         </div>
       )}
 
-      {post.hashtags?.length > 0 && (
+      {postHashtags.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {post.hashtags.map((tag) => (
+          {postHashtags.map((tag) => (
             <span key={tag} className="inline-flex items-center gap-1 rounded-lg border border-[#FFE8A3] bg-[#FFF8E6] px-3 py-1 text-xs font-bold text-[#D9A000]">
               <Hash className="h-3 w-3" />{tag}
             </span>
@@ -254,7 +320,7 @@ export default function PostCard({
                   <button type="button" disabled={busy} onClick={() => startEditingComment(comment)} aria-label="Editar comentário" title="Editar comentário" className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50">
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
-                  <button type="button" disabled={busy} onClick={() => removeComment(comment.id)} aria-label="Excluir comentário" title="Excluir comentário" className="rounded-md p-1 text-red-600 transition hover:bg-red-100 hover:text-red-700 disabled:opacity-50">
+                  <button type="button" disabled={busy} onClick={() => removeComment(comment.id)} aria-label="Excluir comentário" title="Excluir comentário" className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>

@@ -61,7 +61,8 @@ class PostServiceTest {
         var result = postService.list("viewer");
 
         assertEquals(3, result.size());
-        assertEquals(List.of("PUBLIC", "FOLLOWERS", "PRIVATE"), result.stream().map(item -> item.privacy()).toList());
+        org.junit.jupiter.api.Assertions.assertTrue(result.stream().map(item -> item.privacy())
+                .toList().containsAll(List.of("PUBLIC", "FOLLOWERS", "PRIVATE")));
     }
 
     @Test

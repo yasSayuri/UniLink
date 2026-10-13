@@ -1,6 +1,8 @@
 package br.com.unilink.backend.service;
 
 import java.util.Base64;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -50,9 +52,12 @@ public class PostService {
         var followedIds = followRepository.findAllByFollowerId(viewerId).stream()
                 .map(br.com.unilink.backend.model.UserFollow::getFollowedId)
                 .collect(java.util.stream.Collectors.toSet());
-        return postRepository.findAllByOrderByCreatedAtDesc().stream()
+        var visiblePosts = new ArrayList<>(postRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(post -> Objects.equals(post.getAuthorId(), viewerId)
                         || (followedIds.contains(post.getAuthorId()) && canViewPost(post, viewerId)))
+                .toList());
+        Collections.shuffle(visiblePosts);
+        return visiblePosts.stream()
                 .map(post -> toResponse(post, viewerId, false))
                 .toList();
     }
@@ -127,6 +132,28 @@ public class PostService {
                 media,
                 hashtags);
         return toResponse(postRepository.save(post), userId, false);
+    }
+
+    public PostResponse edit(String userId, String postId, String content) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada."));
+        if (!userId.equals(post.getAuthorId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode editar suas próprias publicações.");
+        }
+        String trimmedContent = content.trim();
+        var matcher = HASHTAG_PATTERN.matcher(trimmedContent);
+        List<String> hashtags = matcher.results().map(result -> result.group(1)).distinct().toList();
+        post.updateContent(trimmedContent, hashtags);
+        return toResponse(postRepository.save(post), userId, false);
+    }
+
+    public void delete(String userId, String postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada."));
+        if (!userId.equals(post.getAuthorId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode excluir suas próprias publicações.");
+        }
+        postRepository.delete(post);
     }
 
     public PostResponse like(String userId, String postId) {

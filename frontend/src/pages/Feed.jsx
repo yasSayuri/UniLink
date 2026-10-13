@@ -155,7 +155,7 @@ export default function Feed() {
             ) : loadError ? (
               <p role="alert" className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">{loadError}</p>
             ) : posts.length ? (
-              posts.map((post) => <PostCard key={post.id} post={post} />)
+              posts.map((post) => <PostCard key={post.id} post={post} onDeleted={(postId) => setPosts((current) => current.filter((item) => item.id !== postId))} />)
             ) : user?.followingCount === 0 && user?.followersCount === 0 ? (
               <div className="rounded-3xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
                 <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF3C4] text-amber-800"><UsersRound className="h-6 w-6" /></span>
