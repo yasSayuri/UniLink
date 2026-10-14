@@ -17,5 +17,11 @@ public record CreateCommunityRequest(
         @NotBlank(message = "Selecione a privacidade do grupo.")
         @Pattern(regexp = "PUBLIC|PRIVATE", message = "Selecione uma privacidade válida.")
         String visibility,
-        String imageUrl) {
+        String imageUrl,
+        Integer imagePositionX,
+        Integer imagePositionY) {
+
+    public CreateCommunityRequest(String name, String description, String category, String visibility, String imageUrl) {
+        this(name, description, category, visibility, imageUrl, 50, 50);
+    }
 }

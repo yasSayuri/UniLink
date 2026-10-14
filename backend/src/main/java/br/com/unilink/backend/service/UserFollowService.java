@@ -95,6 +95,9 @@ public class UserFollowService {
                 user.getName(),
                 user.getCourse(),
                 user.getCampus(),
+                user.getAvatarUrl(),
+                user.getAvatarPositionX(),
+                user.getAvatarPositionY(),
                 following);
     }
 }

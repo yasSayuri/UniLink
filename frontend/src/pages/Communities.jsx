@@ -27,7 +27,7 @@ function readGroupImage(event, setDraft) {
   if (!file) return;
   if (file.size > 2 * 1024 * 1024) return;
   const reader = new FileReader();
-  reader.onload = () => setDraft((current) => ({ ...current, imageUrl: reader.result }));
+  reader.onload = () => setDraft((current) => ({ ...current, imageUrl: reader.result, imagePosition: { x: 50, y: 50 } }));
   reader.readAsDataURL(file);
 }
 
@@ -57,8 +57,10 @@ export default function Communities() {
     visibility: 'PUBLIC',
     category: 'Estudo',
     imageUrl: '',
+    imagePosition: { x: 50, y: 50 },
   });
   const groupImageInputRef = useRef(null);
+  const groupImageDragRef = useRef(null);
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('unilink.user') || 'null');
@@ -170,8 +172,37 @@ export default function Communities() {
       visibility: 'PUBLIC',
       category: 'Estudo',
       imageUrl: '',
+      imagePosition: { x: 50, y: 50 },
     });
     setCreateGroupError('');
+  };
+
+  const startGroupImageDrag = (event) => {
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    groupImageDragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      initialX: groupDraft.imagePosition.x,
+      initialY: groupDraft.imagePosition.y,
+    };
+  };
+
+  const moveGroupImageDrag = (event) => {
+    const drag = groupImageDragRef.current;
+    if (!drag) return;
+    const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+    if (!bounds) return;
+    setGroupDraft((current) => ({
+      ...current,
+      imagePosition: {
+        x: Math.max(0, Math.min(100, drag.initialX - ((event.clientX - drag.startX) / bounds.width) * 100)),
+        y: Math.max(0, Math.min(100, drag.initialY - ((event.clientY - drag.startY) / bounds.height) * 100)),
+      },
+    }));
+  };
+
+  const stopGroupImageDrag = () => {
+    groupImageDragRef.current = null;
   };
 
   const openCreateGroup = () => {
@@ -366,7 +397,7 @@ export default function Communities() {
               ) : communities.length ? communities.map((community) => (
                 <article id={`discover-community-${community.id}`} key={community.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                   <div className="relative aspect-[16/7] overflow-hidden bg-slate-200">
-                    <img src={community.imageUrl} alt={`Imagem do grupo ${community.name}`} className="h-full w-full object-cover" loading="lazy" />
+                    <img src={community.imageUrl} alt={`Imagem do grupo ${community.name}`} className="h-full w-full object-cover" style={{ objectPosition: `${community.imagePosition?.x ?? 50}% ${community.imagePosition?.y ?? 50}%` }} loading="lazy" />
                     <span className="absolute left-3 top-3 rounded-lg bg-white/95 px-2.5 py-1.5 text-[10px] font-bold text-slate-800">{community.category}</span>
                     <span className="absolute right-3 top-3 rounded-lg bg-white/95 px-2.5 py-1.5 text-[10px] font-bold text-slate-800">{community.visibility === 'PRIVATE' ? 'Privada' : 'Pública'}</span>
                   </div>
@@ -497,7 +528,7 @@ export default function Communities() {
 
               <div className="space-y-4 px-4 pb-5 pt-4 sm:px-5">
                 <div className="relative h-44 overflow-hidden rounded-2xl bg-gradient-to-r from-slate-800 via-slate-700 to-amber-500 sm:h-52">
-                  {groupDraft.imageUrl && <img src={groupDraft.imageUrl} alt="Prévia da foto do grupo" className="h-full w-full object-cover" />}
+                  {groupDraft.imageUrl && <img src={groupDraft.imageUrl} alt="Prévia da foto do grupo" draggable="false" onPointerDown={startGroupImageDrag} onPointerMove={moveGroupImageDrag} onPointerUp={stopGroupImageDrag} onPointerCancel={stopGroupImageDrag} className="h-full w-full cursor-grab select-none object-cover touch-none active:cursor-grabbing" style={{ objectPosition: `${groupDraft.imagePosition.x}% ${groupDraft.imagePosition.y}%` }} />}
                   <button type="button" onClick={() => groupImageInputRef.current?.click()} aria-label="Alterar foto do grupo" className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-slate-900/70 p-3 text-white transition hover:bg-slate-900">
                     <Camera className="h-5 w-5" />
                   </button>

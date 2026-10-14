@@ -24,6 +24,10 @@ public class Community {
 
     private String imageUrl;
 
+    private Integer imagePositionX = 50;
+
+    private Integer imagePositionY = 50;
+
     private String visibility;
 
     private String ownerId;
@@ -43,6 +47,8 @@ public class Community {
             String category,
             String campus,
             String imageUrl,
+            Integer imagePositionX,
+            Integer imagePositionY,
             String visibility,
             String ownerId) {
         this.name = name;
@@ -50,9 +56,22 @@ public class Community {
         this.category = category;
         this.campus = campus;
         this.imageUrl = imageUrl;
+        this.imagePositionX = imagePositionX;
+        this.imagePositionY = imagePositionY;
         this.visibility = visibility;
         this.ownerId = ownerId;
         this.createdAt = Instant.now();
+    }
+
+    public Community(
+            String name,
+            String description,
+            String category,
+            String campus,
+            String imageUrl,
+            String visibility,
+            String ownerId) {
+        this(name, description, category, campus, imageUrl, 50, 50, visibility, ownerId);
     }
 
     public String getId() {
@@ -77,6 +96,14 @@ public class Community {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public Integer getImagePositionX() {
+        return imagePositionX == null ? 50 : imagePositionX;
+    }
+
+    public Integer getImagePositionY() {
+        return imagePositionY == null ? 50 : imagePositionY;
     }
 
     public String getVisibility() {

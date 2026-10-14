@@ -70,6 +70,8 @@ public class CommunityCatalogService {
                 request.category().trim(),
                 campus,
                 imageUrl,
+                normalizePosition(request.imagePositionX()),
+                normalizePosition(request.imagePositionY()),
                 request.visibility(),
                 creatorId);
         community.addMember(creatorId);
@@ -138,9 +140,15 @@ public class CommunityCatalogService {
                 community.getCategory(),
                 community.getCampus(),
                 community.getImageUrl(),
+                community.getImagePositionX(),
+                community.getImagePositionY(),
                 community.getVisibility(),
                 community.getMemberIds().size(),
                 community.getMemberIds().contains(userId),
                 community.getPendingRequestUserIds().contains(userId));
+    }
+
+    private int normalizePosition(Integer position) {
+        return position == null ? 50 : Math.max(0, Math.min(100, position));
     }
 }
