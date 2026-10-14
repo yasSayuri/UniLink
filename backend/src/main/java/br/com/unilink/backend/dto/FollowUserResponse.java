@@ -6,5 +6,8 @@ public record FollowUserResponse(
         String name,
         String course,
         String campus,
+        String avatarUrl,
+        Integer avatarPositionX,
+        Integer avatarPositionY,
         boolean following) {
 }

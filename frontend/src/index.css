@@ -1,5 +1,63 @@
 @import "tailwindcss";
 
+.rdp {
+	--rdp-accent-color: #d9a000;
+	--rdp-accent-background-color: #fff8e6;
+}
+
+.rdp .rdp-chevron {
+	color: #d9a000;
+	fill: currentColor;
+}
+
+.rdp .rdp-button_previous,
+.rdp .rdp-button_next {
+	color: #d9a000;
+	border-radius: 9999px;
+	outline: none;
+	box-shadow: none;
+	transition: background-color 150ms ease, color 150ms ease;
+}
+
+.rdp .rdp-button_previous:hover,
+.rdp .rdp-button_next:hover,
+.rdp .rdp-button_previous:focus,
+.rdp .rdp-button_next:focus,
+.rdp .rdp-button_previous:focus-visible,
+.rdp .rdp-button_next:focus-visible {
+	background-color: #fff8e6;
+	color: #a87800;
+	outline: none;
+	box-shadow: none;
+}
+
+.rdp-day_button {
+	border-radius: 9999px;
+	transition: background-color 150ms ease, color 150ms ease;
+}
+
+.rdp-day_button:hover {
+	background-color: #fff8e6;
+	color: #a87800;
+}
+
+.rdp .rdp-selected .rdp-day_button {
+	background-color: #ffc72c;
+	border: 0;
+	border-color: transparent;
+	color: #1f2937;
+	font-weight: 700;
+	outline: none;
+	box-shadow: none;
+}
+
+.rdp .rdp-selected .rdp-day_button:focus,
+.rdp .rdp-selected .rdp-day_button:focus-visible {
+	border: 0;
+	outline: none;
+	box-shadow: none;
+}
+
 html,
 body,
 #root,

@@ -1,7 +1,7 @@
 import {
   Bookmark, BookOpen, BriefcaseBusiness, Calendar, ChevronDown, Clock,
-  Compass, Dumbbell, HeartPulse, Home, MapPin, Music, Palette, PartyPopper,
-  Plus, Search, School, Settings, SlidersHorizontal, Users,
+  Compass, Dumbbell, HeartPulse, Home, MapPin, Palette, PartyPopper,
+  Plus, Search, School, Settings, SlidersHorizontal, Sparkles, Users,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -16,12 +16,12 @@ const filters = [
 const eventCategories = [
   { name: 'Todas', icon: Calendar },
   { name: 'Acadêmico', icon: BookOpen },
-  { name: 'Música', icon: Music },
   { name: 'Cultura', icon: Palette },
   { name: 'Carreira', icon: BriefcaseBusiness },
   { name: 'Esportes', icon: Dumbbell },
   { name: 'Bem-estar', icon: HeartPulse },
-  { name: 'Festas', icon: PartyPopper },
+  { name: 'Festa', icon: PartyPopper },
+  { name: 'Lazer', icon: Sparkles },
 ];
 
 export default function FeedSidebar({
@@ -35,7 +35,6 @@ export default function FeedSidebar({
   onEventCategoryChange,
   eventView = 'discover',
   onEventViewChange,
-  onCreateEvent,
   onCreateCommunity,
 }) {
   const isCommunities = activeItem === 'communities';
@@ -104,9 +103,6 @@ export default function FeedSidebar({
               </button>
             ))}
           </nav>
-          <button type="button" onClick={onCreateEvent} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC72C] px-3 py-2.5 text-xs font-bold text-slate-800 transition hover:bg-amber-400">
-            <Plus className="h-4 w-4" />Criar evento
-          </button>
           <div className="space-y-1">
             <h3 className="px-2 pb-1 text-xs font-bold text-slate-800">Categorias</h3>
             {eventCategories.map(({ name, icon: Icon }) => (

@@ -7,6 +7,8 @@ public record CommunityResponse(
         String category,
         String campus,
         String imageUrl,
+        Integer imagePositionX,
+        Integer imagePositionY,
         String visibility,
         long memberCount,
         boolean member,

@@ -492,7 +492,11 @@ function ConnectionsDialog({ tab, profileId, isOwnProfile, onTabChange, onClose,
             <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>
           ) : people.length ? people.map((person) => (
             <div key={person.id} className="flex items-center gap-3 rounded-2xl px-2 py-2">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] font-bold text-slate-800">{person.name.charAt(0).toLocaleUpperCase('pt-BR')}</span>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3C4] font-bold text-slate-800">
+                {person.avatarUrl
+                  ? <img src={person.avatarUrl} alt="" className="h-full w-full object-cover" style={{ objectPosition: `${person.avatarPositionX ?? 50}% ${person.avatarPositionY ?? 50}%` }} />
+                  : person.name.charAt(0).toLocaleUpperCase('pt-BR')}
+              </span>
               <div className="min-w-0 flex-1">
                 <Link to={`/perfil/${person.id}`} onClick={onClose} className="block truncate text-sm font-bold text-slate-800 hover:underline">{person.name}</Link>
                 <Link to={`/perfil/${person.id}`} onClick={onClose} className="block truncate text-xs text-slate-500 hover:underline">@{person.username}</Link>

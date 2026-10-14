@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, GraduationCap, MapPin } from 'lucide-react';
+import { BookOpen, ChevronDown, GraduationCap, MapPin, Search } from 'lucide-react';
 import {
   getCampuses,
   getCourses,
@@ -9,6 +9,36 @@ import {
 } from '../../utils/academicCatalogApi';
 
 const fieldClassName = 'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100';
+
+function SearchableSelect({ value, options, placeholder, onChange, required = false, disabled = false }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const selectedOption = options.find((option) => option.value === value);
+  const filteredOptions = options.filter((option) => option.label.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')));
+
+  return (
+    <div className="relative mt-1.5">
+      <input tabIndex={-1} aria-hidden="true" required={required} value={value} readOnly className="pointer-events-none absolute h-px w-px opacity-0" />
+      <button type="button" disabled={disabled} aria-haspopup="listbox" aria-expanded={open} onClick={() => { setOpen((current) => !current); setQuery(''); }} className={`${fieldClassName} mt-0 flex items-center justify-between text-left disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400`}>
+        <span className={selectedOption ? 'text-slate-700' : 'text-slate-400'}>{selectedOption?.label || placeholder}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && !disabled && <div role="listbox" className="absolute bottom-12 left-0 right-0 z-30 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+        <label className="relative block p-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Pesquisar..." className="h-9 w-full rounded-lg bg-slate-50 pl-9 pr-2 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-amber-100" />
+        </label>
+        <div className="max-h-32 overflow-y-auto">
+          {filteredOptions.length ? filteredOptions.map((option) => (
+            <button key={option.value} type="button" role="option" aria-selected={value === option.value} onClick={() => { onChange(option.value); setOpen(false); setQuery(''); }} className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition ${value === option.value ? 'bg-amber-50 font-semibold text-amber-800' : 'text-slate-700 hover:bg-slate-50'}`}>
+              {option.label}
+            </button>
+          )) : <p className="px-3 py-3 text-xs text-slate-500">Nenhuma opção encontrada.</p>}
+        </div>
+      </div>}
+    </div>
+  );
+}
 
 export default function OnboardingModal({ onComplete }) {
   const [institutions, setInstitutions] = useState([]);
@@ -153,11 +183,16 @@ export default function OnboardingModal({ onComplete }) {
             <>
               <label className="block text-sm font-semibold text-slate-700">
                 Faculdade ou universidade
-                <select required value={institution} onChange={(event) => handleInstitutionChange(event.target.value)} className={fieldClassName}>
-                  <option value="">Selecione sua instituição</option>
-                  {institutions.map((item) => <option key={`${item.name}-${item.domains?.join(',') || ''}`} value={item.name}>{item.name}</option>)}
-                  <option value="__other">Minha instituição não aparece</option>
-                </select>
+                <SearchableSelect
+                  required
+                  value={institution}
+                  onChange={handleInstitutionChange}
+                  placeholder="Selecione sua instituição"
+                  options={[
+                    ...institutions.map((item) => ({ value: item.name, label: item.name })),
+                    { value: '__other', label: 'Minha instituição não aparece' },
+                  ]}
+                />
                 {selectedInstitution?.domains?.length > 0 && (
                   <span className="mt-1.5 block text-xs font-normal text-slate-400">
                     Domínio informado no diretório: {selectedInstitution.domains.join(', ')}
@@ -175,13 +210,18 @@ export default function OnboardingModal({ onComplete }) {
                 <label className="block text-sm font-semibold text-slate-700">
                   Campus
                   {campusesLoading ? (
-                    <select disabled className={fieldClassName}><option>Carregando campi...</option></select>
+                    <SearchableSelect disabled value="" options={[]} placeholder="Carregando campi..." />
                   ) : !campusNeedsText ? (
-                    <select required value={campus} onChange={(event) => handleCampusChange(event.target.value)} className={fieldClassName}>
-                      <option value="">Selecione seu campus</option>
-                      {campuses.map((item) => <option key={item} value={item}>{item}</option>)}
-                      <option value="__other">Outro / não aparece</option>
-                    </select>
+                    <SearchableSelect
+                      required
+                      value={campus}
+                      onChange={handleCampusChange}
+                      placeholder="Selecione seu campus"
+                      options={[
+                        ...campuses.map((item) => ({ value: item, label: item })),
+                        { value: '__other', label: 'Outro / não aparece' },
+                      ]}
+                    />
                   ) : (
                     <input required value={customCampus} onChange={(event) => setCustomCampus(event.target.value)} onBlur={() => {
                       if (customCampus.trim() && institution !== '__other') {
@@ -215,10 +255,13 @@ export default function OnboardingModal({ onComplete }) {
                   </label>
                   <label className="block text-sm font-semibold text-slate-700">
                     Período
-                    <select required value={academicPeriod} onChange={(event) => setAcademicPeriod(event.target.value)} className={fieldClassName}>
-                      <option value="">Selecione o período</option>
-                      {periods.map((period) => <option key={period} value={period}>{period}º período</option>)}
-                    </select>
+                    <SearchableSelect
+                      required
+                      value={academicPeriod}
+                      onChange={setAcademicPeriod}
+                      placeholder="Selecione o período"
+                      options={periods.map((period) => ({ value: String(period), label: `${period}º período` }))}
+                    />
                   </label>
                 </div>
               )}

@@ -175,8 +175,32 @@ export function createCommunity(community) {
       category: community.category,
       visibility: community.visibility,
       imageUrl: community.imageUrl,
+      imagePositionX: community.imagePosition?.x ?? 50,
+      imagePositionY: community.imagePosition?.y ?? 50,
     }),
   });
+}
+
+export function getEvents() {
+  return apiRequest('/api/v1/events');
+}
+
+export function createEvent(event) {
+  return apiRequest('/api/v1/events', {
+    method: 'POST',
+    body: JSON.stringify(event),
+  });
+}
+
+export function editEvent(eventId, event) {
+  return apiRequest(`/api/v1/events/${encodeURIComponent(eventId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(event),
+  });
+}
+
+export function deleteEvent(eventId) {
+  return apiRequest(`/api/v1/events/${encodeURIComponent(eventId)}`, { method: 'DELETE' });
 }
 
 export function updateProfile(profile) {
