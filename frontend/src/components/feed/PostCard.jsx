@@ -1,13 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Bookmark, Hash, MessageCircle, Pencil, Repeat2, Share2, ThumbsUp, Trash2, UserPlus,
+  Bookmark, Flag, Hash, MessageCircle, MoreVertical, Pencil, Repeat2, Share2, ThumbsUp, Trash2, UserPlus,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Avatar from './Avatar';
 import { isPostSaved, removeSavedPost, SAVED_POSTS_CHANGED_EVENT, toggleSavedPost } from '../../utils/savedPosts';
 import {
-  commentOnPost, deleteCommentOnPost, deletePost, editCommentOnPost, editPost, likePost, repostPost, undoRepost, unlikePost,
+  commentOnPost, deleteCommentOnPost, deletePost, editCommentOnPost, editPost, likePost, reportPost, repostPost, undoRepost, unlikePost,
 } from '../../utils/authApi';
+
+const REPORT_REASONS = [
+  ['INAPPROPRIATE_CONTENT', 'Conteúdo inadequado'],
+  ['VIOLENCE_OR_THREATS', 'Violência ou ameaça'],
+  ['HATE_SPEECH', 'Discurso de ódio'],
+  ['SPAM_OR_SCAM', 'Spam ou golpe'],
+  ['PERSONAL_DATA', 'Divulgação de dados pessoais'],
+  ['OTHER', 'Outro'],
+];
+const REPORTED_POSTS_STORAGE_KEY = 'unilink.reported-posts';
+const REPORT_SUCCESS_MESSAGE = 'Sua denúncia foi enviada e será revisada. Obrigado por nos ajudar a manter a comunidade saudável e um ambiente seguro para todos.';
+
+function reportedPostsStorageKey(userId) {
+  return `${REPORTED_POSTS_STORAGE_KEY}.${userId || 'anonymous'}`;
+}
+
+function hasReportedPost(postId, userId) {
+  try {
+    return JSON.parse(localStorage.getItem(reportedPostsStorageKey(userId)) || '[]').includes(postId);
+  } catch {
+    return false;
+  }
+}
+
+function rememberReportedPost(postId, userId) {
+  try {
+    const storageKey = reportedPostsStorageKey(userId);
+    const reportedPosts = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    if (!reportedPosts.includes(postId)) {
+      localStorage.setItem(storageKey, JSON.stringify([...reportedPosts, postId]));
+    }
+  } catch {
+    localStorage.setItem(reportedPostsStorageKey(userId), JSON.stringify([postId]));
+  }
+}
 
 function formatPostTime(createdAt) {
   const created = new Date(createdAt);
@@ -23,6 +58,97 @@ function formatPostTime(createdAt) {
     return 'Ontem';
   }
   return created.toLocaleDateString('pt-BR');
+}
+
+function PostActionsMenu({
+  onEdit,
+  onDelete,
+  disabled = false,
+  editTitle,
+  deleteTitle,
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  const triggerRef = useRef(null);
+  const firstItemRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (!menuRef.current?.contains(event.target) && !triggerRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+    firstItemRef.current?.focus();
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [open]);
+
+  const selectAction = (action) => {
+    setOpen(false);
+    action();
+  };
+
+  return (
+    <div className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        aria-label="Mais opções"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="Mais opções"
+        className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Ações"
+          className="absolute right-0 top-full z-30 mt-1 min-w-[9rem] rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
+        >
+          <button
+            ref={firstItemRef}
+            type="button"
+            role="menuitem"
+            onClick={() => selectAction(onEdit)}
+            aria-label={editTitle}
+            title={editTitle}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:outline-none"
+          >
+            <Pencil className="h-3.5 w-3.5" />Editar
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => selectAction(onDelete)}
+            aria-label={deleteTitle}
+            title={deleteTitle}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 focus:bg-slate-100 focus:outline-none"
+          >
+            <Trash2 className="h-3.5 w-3.5" />Excluir
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PostCard({
@@ -59,6 +185,13 @@ export default function PostCard({
   const [editingPostDraft, setEditingPostDraft] = useState(post.content);
   const [deleted, setDeleted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [reported, setReported] = useState(() => hasReportedPost(post.id, currentUser?.id));
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportSubmitted, setReportSubmitted] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(null);
+  const deleteCancelButtonRef = useRef(null);
   const timeLabel = formatPostTime(post.createdAt);
   const authorName = post.authorName;
   const visibleComments = comments.slice(0, visibleCommentsCount);
@@ -74,6 +207,18 @@ export default function PostCard({
     const timeout = window.setTimeout(() => setNotification(''), 2200);
     return () => window.clearTimeout(timeout);
   }, [notification]);
+
+  useEffect(() => {
+    if (!deleteDialog) return undefined;
+    deleteCancelButtonRef.current?.focus();
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && !busy) {
+        setDeleteDialog(null);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [deleteDialog, busy]);
 
   const handleSave = () => {
     try {
@@ -179,6 +324,14 @@ export default function PostCard({
     }
   };
 
+  const requestDeletePost = () => {
+    if (!busy) setDeleteDialog({ type: 'post' });
+  };
+
+  const requestDeleteComment = (commentId) => {
+    if (!busy) setDeleteDialog({ type: 'comment', commentId });
+  };
+
   const saveEditedPost = async () => {
     const text = editingPostDraft.trim();
     if (!text || busy) return;
@@ -197,7 +350,7 @@ export default function PostCard({
   };
 
   const removePost = async () => {
-    if (busy || !window.confirm('Excluir esta publicação?')) return;
+    if (busy) return;
     setBusy(true);
     try {
       await deletePost(post.id);
@@ -208,6 +361,49 @@ export default function PostCard({
       setNotification(error.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog || busy) return;
+    const pendingDelete = deleteDialog;
+    setDeleteDialog(null);
+    if (pendingDelete.type === 'post') {
+      await removePost();
+    } else {
+      await removeComment(pendingDelete.commentId);
+    }
+  };
+
+  const openReportModal = () => {
+    if (reported) {
+      setNotification('Você já denunciou esta publicação.');
+      return;
+    }
+    setReportReason('');
+    setReportSubmitted(false);
+    setReportModalOpen(true);
+  };
+
+  const submitReport = async (event) => {
+    event.preventDefault();
+    if (!reportReason || reportSubmitting) return;
+    setReportSubmitting(true);
+    try {
+      await reportPost(post.id, reportReason);
+      rememberReportedPost(post.id, currentUser?.id);
+      setReported(true);
+      setReportSubmitted(true);
+    } catch (error) {
+      if (error.message?.includes('já denunciou')) {
+        rememberReportedPost(post.id, currentUser?.id);
+        setReported(true);
+        setReportSubmitted(true);
+      } else {
+        setNotification(error.message);
+      }
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -243,12 +439,13 @@ export default function PostCard({
         )}
         {post.authorId === currentUser?.id && (
           <div className="ml-auto flex shrink-0 items-start gap-2">
-            <button type="button" disabled={busy} onClick={() => { setEditingPost(true); setEditingPostDraft(postContent); }} aria-label="Editar publicação" title="Editar publicação" className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50">
-              <Pencil className="h-4 w-4" />
-            </button>
-            <button type="button" disabled={busy} onClick={removePost} aria-label="Excluir publicação" title="Excluir publicação" className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50">
-              <Trash2 className="h-4 w-4" />
-            </button>
+            <PostActionsMenu
+              disabled={busy}
+              onEdit={() => { setEditingPost(true); setEditingPostDraft(postContent); }}
+              onDelete={requestDeletePost}
+              editTitle="Editar publicação"
+              deleteTitle="Excluir publicação"
+            />
           </div>
         )}
       </header>
@@ -297,13 +494,16 @@ export default function PostCard({
 
       <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs font-medium text-slate-500">
         <div className="flex items-center gap-4">
-          <button type="button" disabled={busy} onClick={handleLike} aria-pressed={liked} className={`flex items-center gap-1.5 transition-colors disabled:opacity-50 ${liked ? 'font-bold text-blue-600' : 'hover:text-slate-800'}`}><ThumbsUp className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} /><span>{likesCount} Curtir</span></button>
-          <button type="button" className="flex items-center gap-1.5 transition-colors hover:text-slate-800"><MessageCircle className="h-4 w-4" /><span>{comments.length} Comentar</span></button>
-          <button type="button" disabled={busy} onClick={handleRepost} aria-pressed={reposted} className={`flex items-center gap-1.5 transition-colors disabled:opacity-50 ${reposted ? 'font-bold text-emerald-600' : 'hover:text-slate-800'}`}><Repeat2 className="h-4 w-4" /><span>{reposted ? 'Repostado' : 'Repostar'}{repostsCount ? ` · ${repostsCount}` : ''}</span></button>
+          <button type="button" disabled={busy} onClick={handleLike} aria-label={liked ? 'Descurtir publicação' : 'Curtir publicação'} title={liked ? 'Descurtir publicação' : 'Curtir publicação'} aria-pressed={liked} className={`flex items-center gap-1.5 transition-colors disabled:opacity-50 ${liked ? 'font-bold text-blue-600' : 'hover:text-slate-800'}`}><ThumbsUp className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} /><span>{likesCount} Curtir</span></button>
+          <button type="button" aria-label="Comentar publicação" title="Comentar publicação" className="flex items-center gap-1.5 transition-colors hover:text-slate-800"><MessageCircle className="h-4 w-4" /><span>{comments.length} Comentar</span></button>
+          <button type="button" disabled={busy} onClick={handleRepost} aria-label={reposted ? 'Remover repostagem' : 'Repostar publicação'} title={reposted ? 'Remover repostagem' : 'Repostar publicação'} aria-pressed={reposted} className={`flex items-center gap-1.5 transition-colors disabled:opacity-50 ${reposted ? 'font-bold text-emerald-600' : 'hover:text-slate-800'}`}><Repeat2 className="h-4 w-4" /><span>{reposted ? 'Repostado' : 'Repostar'}{repostsCount ? ` · ${repostsCount}` : ''}</span></button>
         </div>
         <div className="flex items-center gap-3">
           <button type="button" onClick={handleSave} aria-label={isSaved ? 'Remover publicação dos salvos' : 'Salvar publicação'} aria-pressed={isSaved} title={isSaved ? 'Remover dos salvos' : 'Salvar publicação'} className={`transition-colors ${isSaved ? 'text-[#D9A000]' : 'hover:text-slate-800'}`}><Bookmark className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} /></button>
-          <button type="button" onClick={sharePost} className="transition-colors hover:text-slate-800" aria-label="Compartilhar publicação"><Share2 className="h-4 w-4" /></button>
+          <button type="button" onClick={sharePost} className="transition-colors hover:text-slate-800" aria-label="Compartilhar publicação" title="Compartilhar publicação"><Share2 className="h-4 w-4" /></button>
+          {currentUser?.id && post.authorId !== currentUser.id && (
+            <button type="button" disabled={busy || reported} onClick={openReportModal} className={`transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${reported ? 'text-amber-600' : 'hover:text-slate-800'}`} aria-label={reported ? 'Denúncia já enviada' : 'Denunciar publicação'} title={reported ? 'Denúncia já enviada' : 'Denunciar publicação'}><Flag className={`h-4 w-4 ${reported ? 'fill-current' : ''}`} /></button>
+          )}
         </div>
       </div>
 
@@ -317,12 +517,13 @@ export default function PostCard({
               </div>
               {comment.authorId === currentUser?.id && (
                 <div className="flex items-center gap-2">
-                  <button type="button" disabled={busy} onClick={() => startEditingComment(comment)} aria-label="Editar comentário" title="Editar comentário" className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50">
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button type="button" disabled={busy} onClick={() => removeComment(comment.id)} aria-label="Excluir comentário" title="Excluir comentário" className="rounded-md p-1 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <PostActionsMenu
+                    disabled={busy}
+                    onEdit={() => startEditingComment(comment)}
+                    onDelete={() => requestDeleteComment(comment.id)}
+                    editTitle="Editar comentário"
+                    deleteTitle="Excluir comentário"
+                  />
                 </div>
               )}
             </div>
@@ -359,6 +560,98 @@ export default function PostCard({
           <button type="submit" disabled={!commentDraft.trim() || busy} className="rounded-xl bg-[#FFC72C] px-4 py-2 text-xs font-bold text-slate-900 disabled:opacity-50">Enviar</button>
         </form>
       </div>
+
+      {deleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="presentation">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`delete-dialog-title-${post.id}`}
+            aria-describedby={`delete-dialog-description-${post.id}`}
+            className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-xl"
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFF8E6] text-[#D9A000]">
+                <Trash2 className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 id={`delete-dialog-title-${post.id}`} className="text-lg font-bold text-slate-900">
+                  {deleteDialog.type === 'post' ? 'Excluir publicação?' : 'Excluir comentário?'}
+                </h2>
+                <p id={`delete-dialog-description-${post.id}`} className="mt-1 text-sm leading-relaxed text-slate-600">
+                  Esta ação não pode ser desfeita.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                ref={deleteCancelButtonRef}
+                type="button"
+                onClick={() => setDeleteDialog(null)}
+                disabled={busy}
+                className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={busy}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#FFC72C] px-4 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-[#E5AD00] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                {busy ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="presentation">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="report-dialog-title"
+            aria-describedby="report-dialog-description"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+          >
+            {reportSubmitted ? (
+              <div className="space-y-4">
+                <h2 id="report-dialog-title" className="text-lg font-bold text-slate-900">Denúncia enviada</h2>
+                <p id="report-dialog-description" className="text-sm leading-relaxed text-slate-600">{REPORT_SUCCESS_MESSAGE}</p>
+                <button type="button" onClick={() => setReportModalOpen(false)} className="w-full rounded-xl bg-[#FFC72C] px-4 py-2.5 text-sm font-bold text-slate-900">Fechar</button>
+              </div>
+            ) : (
+              <form onSubmit={submitReport} className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 id="report-dialog-title" className="text-lg font-bold text-slate-900">Denunciar publicação</h2>
+                    <p id="report-dialog-description" className="mt-1 text-sm text-slate-500">Selecione o motivo da denúncia.</p>
+                  </div>
+                  <button type="button" onClick={() => setReportModalOpen(false)} disabled={reportSubmitting} aria-label="Fechar denúncia" title="Fechar" className="rounded-lg px-2 py-1 text-xl leading-none text-slate-500 hover:bg-slate-100 disabled:opacity-50">×</button>
+                </div>
+                <label htmlFor={`report-reason-${post.id}`} className="block text-sm font-semibold text-slate-700">Motivo</label>
+                <select
+                  id={`report-reason-${post.id}`}
+                  value={reportReason}
+                  onChange={(event) => setReportReason(event.target.value)}
+                  required
+                  disabled={reportSubmitting}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-amber-300"
+                >
+                  <option value="">Selecione um motivo</option>
+                  {REPORT_REASONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setReportModalOpen(false)} disabled={reportSubmitting} className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 disabled:opacity-50">Cancelar</button>
+                  <button type="submit" disabled={!reportReason || reportSubmitting} className="rounded-xl bg-[#FFC72C] px-4 py-2.5 text-sm font-bold text-slate-900 disabled:opacity-50">{reportSubmitting ? 'Enviando...' : 'Enviar denúncia'}</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {notification && <div role="status" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-800 px-4 py-3 text-sm font-semibold text-white shadow-lg">{notification}</div>}
     </article>

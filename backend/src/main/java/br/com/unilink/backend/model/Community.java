@@ -148,6 +148,15 @@ public class Community {
         }
     }
 
+    public void removeMember(String userId) {
+        if (memberIds != null) {
+            memberIds.remove(userId);
+        }
+        if (pendingRequestUserIds != null) {
+            pendingRequestUserIds.remove(userId);
+        }
+    }
+
     public void requestMembership(String userId) {
         if (pendingRequestUserIds == null) {
             pendingRequestUserIds = new ArrayList<>();

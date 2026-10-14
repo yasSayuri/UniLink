@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.regex.Pattern;
 
 import br.com.unilink.backend.dto.CreatePostRequest;
@@ -19,12 +21,14 @@ import br.com.unilink.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class PostService {
 
     private static final int MAX_MEDIA_BYTES = 10 * 1024 * 1024;
     private static final int MAX_MEDIA_FILE_BYTES = 5 * 1024 * 1024;
+    private static final Duration PUBLICATION_BLOCK_DURATION = Duration.ofMinutes(10);
     private static final Pattern DATA_URL_PATTERN = Pattern.compile(
             "^data:(image/(?:jpeg|png|gif|webp)|video/(?:mp4|webm));base64,([A-Za-z0-9+/]*={0,2})$");
     private static final Pattern HASHTAG_PATTERN = Pattern.compile("(?<!\\w)#([\\p{L}\\p{N}_]+)");
@@ -34,6 +38,28 @@ public class PostService {
     private final UserFollowRepository followRepository;
     private final CommunityRepository communityRepository;
     private final NotificationService notificationService;
+    private final ContentModerationService contentModerationService;
+    private final UserBlockService userBlockService;
+
+    @Autowired
+    public PostService(
+            PostRepository postRepository,
+            UserRepository userRepository,
+            UserFollowRepository followRepository,
+            CommunityRepository communityRepository,
+            NotificationService notificationService,
+            ContentModerationService contentModerationService,
+            UserBlockService userBlockService) {
+        this.postRepository = postRepository;
+        this.userRepository = userRepository;
+        this.followRepository = followRepository;
+        this.communityRepository = communityRepository;
+        this.notificationService = notificationService;
+        this.contentModerationService = contentModerationService == null
+                ? new ContentModerationService()
+                : contentModerationService;
+        this.userBlockService = userBlockService;
+    }
 
     public PostService(
             PostRepository postRepository,
@@ -41,11 +67,19 @@ public class PostService {
             UserFollowRepository followRepository,
             CommunityRepository communityRepository,
             NotificationService notificationService) {
-        this.postRepository = postRepository;
-        this.userRepository = userRepository;
-        this.followRepository = followRepository;
-        this.communityRepository = communityRepository;
-        this.notificationService = notificationService;
+        this(postRepository, userRepository, followRepository, communityRepository,
+                notificationService, new ContentModerationService(), null);
+    }
+
+    public PostService(
+            PostRepository postRepository,
+            UserRepository userRepository,
+            UserFollowRepository followRepository,
+            CommunityRepository communityRepository,
+            NotificationService notificationService,
+            ContentModerationService contentModerationService) {
+        this(postRepository, userRepository, followRepository, communityRepository,
+                notificationService, contentModerationService, null);
     }
 
     public List<PostResponse> list(String viewerId) {
@@ -55,6 +89,7 @@ public class PostService {
         var visiblePosts = new ArrayList<>(postRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(post -> Objects.equals(post.getAuthorId(), viewerId)
                         || (followedIds.contains(post.getAuthorId()) && canViewPost(post, viewerId)))
+                .filter(post -> isVisibleToViewer(post.getAuthorId(), viewerId))
                 .toList());
         Collections.shuffle(visiblePosts);
         return visiblePosts.stream()
@@ -69,6 +104,7 @@ public class PostService {
                         .anyMatch(item -> normalizedHashtag.equals(item.toLowerCase(java.util.Locale.ROOT))))
                 .filter(post -> post.getPrivacy() == null || "PUBLIC".equals(post.getPrivacy()))
                 .filter(post -> post.getCommunityName() == null || canViewPost(post, viewerId))
+                .filter(post -> isVisibleToViewer(post.getAuthorId(), viewerId))
                 .map(post -> toResponse(post, viewerId, false))
                 .toList();
     }
@@ -76,6 +112,9 @@ public class PostService {
     public List<PostResponse> profilePosts(String profileId, String viewerId) {
         if (!userRepository.existsById(profileId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
+        }
+        if (!Objects.equals(profileId, viewerId) && isBlockedEither(profileId, viewerId)) {
+            return List.of();
         }
         return postRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(post -> Objects.equals(post.getAuthorId(), profileId)
@@ -102,6 +141,7 @@ public class PostService {
                         && (communityName == null || communityName.equals(post.getCommunityName()))
                         && canViewCommunity(communities.get(post.getCommunityName()), viewerId)
                         && (post.getPrivacy() == null || "PUBLIC".equals(post.getPrivacy())))
+                .filter(post -> isVisibleToViewer(post.getAuthorId(), viewerId))
                 .map(post -> toResponse(post, viewerId, false))
                 .toList();
     }
@@ -115,6 +155,12 @@ public class PostService {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
         String content = request.content().trim();
+        ensureCanPublish(user);
+        if (!contentModerationService.isAllowed(content)) {
+            blockPublications(user);
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    ContentModerationService.BLOCKED_MESSAGE);
+        }
         List<PostMedia> media = validateMedia(request.media());
         var matcher = HASHTAG_PATTERN.matcher(content);
         List<String> hashtags = matcher.results().map(result -> result.group(1)).distinct().toList();
@@ -145,13 +191,39 @@ public class PostService {
         return toResponse(postRepository.save(post), userId, false);
     }
 
+    private void ensureCanPublish(br.com.unilink.backend.model.User user) {
+        Instant now = Instant.now();
+        if (!user.isPublicationBlocked(now)) {
+            return;
+        }
+        long remainingMinutes = Math.max(1,
+                Duration.between(now, user.getPublicationBlockedUntil()).plusSeconds(59).toMinutes());
+        throw new ResponseStatusException(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "Sua publicação está temporariamente bloqueada. Tente novamente em "
+                        + remainingMinutes + (remainingMinutes == 1 ? " minuto." : " minutos."));
+    }
+
+    private void blockPublications(br.com.unilink.backend.model.User user) {
+        user.blockPublicationsUntil(Instant.now().plus(PUBLICATION_BLOCK_DURATION));
+        userRepository.save(user);
+    }
+
     public PostResponse edit(String userId, String postId, String content) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada."));
         if (!userId.equals(post.getAuthorId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você só pode editar suas próprias publicações.");
         }
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
         String trimmedContent = content.trim();
+        ensureCanPublish(user);
+        if (!contentModerationService.isAllowed(trimmedContent)) {
+            blockPublications(user);
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    ContentModerationService.BLOCKED_MESSAGE);
+        }
         var matcher = HASHTAG_PATTERN.matcher(trimmedContent);
         List<String> hashtags = matcher.results().map(result -> result.group(1)).distinct().toList();
         post.updateContent(trimmedContent, hashtags);
@@ -245,6 +317,7 @@ public class PostService {
 
     private boolean canViewPost(Post post, String viewerId) {
         if (Objects.equals(post.getAuthorId(), viewerId)) return true;
+        if (isBlockedEither(post.getAuthorId(), viewerId)) return false;
         if ("PRIVATE".equals(post.getPrivacy())) return false;
         if ("FOLLOWERS".equals(post.getPrivacy())
                 && !followRepository.existsByFollowerIdAndFollowedId(viewerId, post.getAuthorId())) return false;
@@ -253,6 +326,14 @@ public class PostService {
             return canViewCommunity(community, viewerId);
         }
         return post.getPrivacy() == null || "PUBLIC".equals(post.getPrivacy()) || "FOLLOWERS".equals(post.getPrivacy());
+    }
+
+    private boolean isBlockedEither(String firstUserId, String secondUserId) {
+        return userBlockService != null && userBlockService.isBlockedEither(firstUserId, secondUserId);
+    }
+
+    private boolean isVisibleToViewer(String authorId, String viewerId) {
+        return Objects.equals(authorId, viewerId) || !isBlockedEither(authorId, viewerId);
     }
 
     private List<PostMedia> validateMedia(List<br.com.unilink.backend.dto.PostMediaRequest> mediaRequests) {

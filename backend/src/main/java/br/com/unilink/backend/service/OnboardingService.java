@@ -9,16 +9,27 @@ import br.com.unilink.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class OnboardingService {
 
     private final UserRepository userRepository;
     private final UserFollowService userFollowService;
+    private final UserBlockService userBlockService;
 
-    public OnboardingService(UserRepository userRepository, UserFollowService userFollowService) {
+    @Autowired
+    public OnboardingService(
+            UserRepository userRepository,
+            UserFollowService userFollowService,
+            UserBlockService userBlockService) {
         this.userRepository = userRepository;
         this.userFollowService = userFollowService;
+        this.userBlockService = userBlockService;
+    }
+
+    public OnboardingService(UserRepository userRepository, UserFollowService userFollowService) {
+        this(userRepository, userFollowService, null);
     }
 
     public UserResponse getCurrentUser(String userId) {
@@ -42,6 +53,8 @@ public class OnboardingService {
                 userFollowService.followersCount(profileId),
                 userFollowService.followingCount(profileId),
                 !profileId.equals(viewerId) && userFollowService.isFollowing(viewerId, profileId),
+                userBlockService != null && userBlockService.isBlocked(viewerId, profileId),
+                userBlockService != null && userBlockService.isBlocked(profileId, viewerId),
                 user.getAvatarUrl(),
                 user.getHeaderUrl(),
                 user.getAvatarPositionX(),

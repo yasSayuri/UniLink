@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import {
   FilePlus2, Globe, LockKeyhole, Megaphone, UsersRound,
 } from 'lucide-react';
@@ -43,16 +43,11 @@ export default function PostComposer({
   const [community, setCommunity] = useState('');
   const [openMenu, setOpenMenu] = useState(null);
   const [notice, setNotice] = useState('');
+  const [dismissedError, setDismissedError] = useState('');
   const textareaRef = useRef(null);
   const mediaInputRef = useRef(null);
   const selectedAudience = audiences.find((item) => item.id === audience) || audiences[0];
   const AudienceIcon = selectedAudience.icon;
-
-  useEffect(() => {
-    if (fixedCommunityName) {
-      setCommunity(fixedCommunityName);
-    }
-  }, [fixedCommunityName]);
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current;
@@ -72,6 +67,7 @@ export default function PostComposer({
     const targetCommunity = communityMode
       ? (fixedCommunityName || community || null)
       : null;
+    setDismissedError('');
     const published = await onSubmit(content.trim(), audience, targetCommunity, mediaPayload);
     if (published) {
       setContent('');
@@ -114,95 +110,114 @@ export default function PostComposer({
   const showAnnouncementNotice = () => setNotice('A criação de anúncios ainda não está disponível.');
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm lg:shrink-0">
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFC72C] font-bold text-slate-800">
-          {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" /> : user?.name?.trim().charAt(0).toLocaleUpperCase('pt-BR') || 'U'}
-        </div>
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
-          placeholder={communityMode ? (fixedCommunityName ? `Compartilhe algo no grupo ${fixedCommunityName}...` : 'Compartilhe algo com suas comunidades...') : 'No que você está pensando?'}
-          maxLength={2000}
-          rows={3}
-          className="min-h-24 w-full resize-none overflow-hidden rounded-2xl bg-[#F1F3F6] px-5 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#FFC72C]"
-        />
-      </div>
-      {error && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-      {media.length > 0 && (
-        <div className="ml-[52px] grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {media.map((item, index) => (
-            <div key={`${item.fileName}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-              {item.contentType.startsWith('image/') ? (
-                <img src={item.dataUrl} alt={item.fileName} className="h-28 w-full object-cover" />
-              ) : (
-                <video src={item.dataUrl} controls className="h-28 w-full object-cover" />
-              )}
-              <button type="button" onClick={() => removeMedia(index)} aria-label={`Remover ${item.fileName}`} className="absolute right-1 top-1 rounded-full bg-slate-900/75 px-2 py-1 text-xs font-bold text-white hover:bg-slate-900">×</button>
-              <p className="truncate px-2 py-1 text-[10px] text-slate-600">{item.fileName}</p>
-            </div>
-          ))}
-        </div>
-      )}
-      {notice && <p role="status" className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">{notice}</p>}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-1 pt-3 sm:px-2">
-        <div className="flex flex-wrap items-center gap-1 text-xs font-medium text-slate-600">
-          <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" multiple hidden onChange={handleMediaSelection} />
-          <button type="button" onClick={() => mediaInputRef.current?.click()} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-slate-50"><FilePlus2 className="h-4 w-4 text-amber-500" /><span>Mídia</span></button>
-          <button type="button" onClick={showAnnouncementNotice} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-slate-50"><Megaphone className="h-4 w-4 text-emerald-500" /><span>Anunciar</span></button>
-          <div className="relative">
-            <button type="button" aria-haspopup="listbox" aria-expanded={openMenu === 'audience'} onClick={() => setOpenMenu((open) => open === 'audience' ? null : 'audience')} className="flex items-center gap-1.5 rounded-xl p-2 text-slate-600 transition hover:bg-slate-50">
-              <AudienceIcon className="h-4 w-4" />{selectedAudience.label}
-            </button>
-            {openMenu === 'audience' && (
-              <div role="listbox" aria-label="Privacidade da publicação" className="absolute left-0 top-full z-30 mt-2 min-w-48 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl">
-                {audiences.map(({ id, label, icon: Icon }) => (
-                  <button key={id} type="button" role="option" aria-selected={audience === id} onClick={() => { setAudience(id); setOpenMenu(null); }} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs transition ${audience === id ? 'bg-[#FFF8E6] font-bold text-[#9A7100]' : 'text-slate-700 hover:bg-slate-50'}`}>
-                    <Icon className="h-4 w-4" />{label}
-                  </button>
-                ))}
-              </div>
-            )}
+    <>
+      <form onSubmit={submit} className="space-y-4 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm lg:shrink-0">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFC72C] font-bold text-slate-800">
+            {user?.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" /> : user?.name?.trim().charAt(0).toLocaleUpperCase('pt-BR') || 'U'}
           </div>
-          {communityMode && !fixedCommunityName && (
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            placeholder={communityMode ? (fixedCommunityName ? `Compartilhe algo no grupo ${fixedCommunityName}...` : 'Compartilhe algo com suas comunidades...') : 'No que você está pensando?'}
+            maxLength={2000}
+            rows={3}
+            className="min-h-24 w-full resize-none overflow-hidden rounded-2xl bg-[#F1F3F6] px-5 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#FFC72C]"
+          />
+        </div>
+        {media.length > 0 && (
+          <div className="ml-[52px] grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {media.map((item, index) => (
+              <div key={`${item.fileName}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                {item.contentType.startsWith('image/') ? (
+                  <img src={item.dataUrl} alt={item.fileName} className="h-28 w-full object-cover" />
+                ) : (
+                  <video src={item.dataUrl} controls className="h-28 w-full object-cover" />
+                )}
+                <button type="button" onClick={() => removeMedia(index)} aria-label={`Remover ${item.fileName}`} className="absolute right-1 top-1 rounded-full bg-slate-900/75 px-2 py-1 text-xs font-bold text-white hover:bg-slate-900">×</button>
+                <p className="truncate px-2 py-1 text-[10px] text-slate-600">{item.fileName}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {notice && <p role="status" className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">{notice}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-1 pt-3 sm:px-2">
+          <div className="flex flex-wrap items-center gap-1 text-xs font-medium text-slate-600">
+            <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" multiple hidden onChange={handleMediaSelection} />
+            <button type="button" onClick={() => mediaInputRef.current?.click()} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-slate-50"><FilePlus2 className="h-4 w-4 text-amber-500" /><span>Mídia</span></button>
+            <button type="button" onClick={showAnnouncementNotice} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-slate-50"><Megaphone className="h-4 w-4 text-emerald-500" /><span>Anunciar</span></button>
             <div className="relative">
-              <button
-                type="button"
-                aria-haspopup="listbox"
-                aria-expanded={openMenu === 'community'}
-                onClick={() => setOpenMenu((open) => open === 'community' ? null : 'community')}
-                className="flex items-center gap-1.5 rounded-xl p-2 text-slate-600 transition hover:bg-slate-50"
-              >
-                <UsersRound className="h-4 w-4" />
-                <span>{community || 'Escolher comunidade'}</span>
+              <button type="button" aria-haspopup="listbox" aria-expanded={openMenu === 'audience'} onClick={() => setOpenMenu((open) => open === 'audience' ? null : 'audience')} className="flex items-center gap-1.5 rounded-xl p-2 text-slate-600 transition hover:bg-slate-50">
+                <AudienceIcon className="h-4 w-4" />{selectedAudience.label}
               </button>
-              {openMenu === 'community' && (
-                <div role="listbox" aria-label="Escolher comunidade" className="absolute left-0 top-full z-30 mt-2 min-w-56 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl">
-                  {communities.map((item) => {
-                    const name = typeof item === 'string' ? item : item.name;
-                    return (
-                      <button
-                        key={name}
-                        type="button"
-                        role="option"
-                        aria-selected={community === name}
-                        onClick={() => { setCommunity(name); setOpenMenu(null); }}
-                        className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs transition ${community === name ? 'bg-[#FFF8E6] font-bold text-[#9A7100]' : 'text-slate-700 hover:bg-slate-50'}`}
-                      >
-                        <UsersRound className="h-4 w-4" />{name}
-                      </button>
-                    );
-                  })}
+              {openMenu === 'audience' && (
+                <div role="listbox" aria-label="Privacidade da publicação" className="absolute left-0 top-full z-30 mt-2 min-w-48 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl">
+                  {audiences.map(({ id, label, icon: Icon }) => (
+                    <button key={id} type="button" role="option" aria-selected={audience === id} onClick={() => { setAudience(id); setOpenMenu(null); }} className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs transition ${audience === id ? 'bg-[#FFF8E6] font-bold text-[#9A7100]' : 'text-slate-700 hover:bg-slate-50'}`}>
+                      <Icon className="h-4 w-4" />{label}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
-          )}
+            {communityMode && !fixedCommunityName && (
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded={openMenu === 'community'}
+                  onClick={() => setOpenMenu((open) => open === 'community' ? null : 'community')}
+                  className="flex items-center gap-1.5 rounded-xl p-2 text-slate-600 transition hover:bg-slate-50"
+                >
+                  <UsersRound className="h-4 w-4" />
+                  <span>{community || 'Escolher comunidade'}</span>
+                </button>
+                {openMenu === 'community' && (
+                  <div role="listbox" aria-label="Escolher comunidade" className="absolute left-0 top-full z-30 mt-2 min-w-56 rounded-xl border border-slate-100 bg-white p-1.5 shadow-xl">
+                    {communities.map((item) => {
+                      const name = typeof item === 'string' ? item : item.name;
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          role="option"
+                          aria-selected={community === name}
+                          onClick={() => { setCommunity(name); setOpenMenu(null); }}
+                          className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-xs transition ${community === name ? 'bg-[#FFF8E6] font-bold text-[#9A7100]' : 'text-slate-700 hover:bg-slate-50'}`}
+                        >
+                          <UsersRound className="h-4 w-4" />{name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <button type="submit" disabled={publishing || !content.trim() || (communityMode && !fixedCommunityName && !community)} className="rounded-xl bg-[#FFC72C] px-5 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50">
+            {publishing ? 'Publicando...' : 'Publicar'}
+          </button>
         </div>
-        <button type="submit" disabled={publishing || !content.trim() || (communityMode && !fixedCommunityName && !community)} className="rounded-xl bg-[#FFC72C] px-5 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50">
-          {publishing ? 'Publicando...' : 'Publicar'}
-        </button>
-      </div>
-    </form>
+      </form>
+      {error && dismissedError !== error && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/30 px-4 pt-24" role="presentation">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="post-error-title"
+            className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="post-error-title" className="text-sm font-bold text-red-800">Não foi possível publicar</h2>
+                <p className="mt-2 text-sm leading-relaxed text-slate-700">{error}</p>
+              </div>
+              <button type="button" onClick={() => setDismissedError(error)} aria-label="Fechar aviso" className="rounded-lg px-2 py-1 text-lg leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-700">×</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

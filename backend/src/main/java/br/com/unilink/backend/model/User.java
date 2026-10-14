@@ -46,6 +46,8 @@ public class User {
 
     private boolean demoAccount;
 
+    private Instant publicationBlockedUntil;
+
     private Instant createdAt;
 
     protected User() {
@@ -118,6 +120,22 @@ public class User {
 
     public boolean isDemoAccount() {
         return demoAccount;
+    }
+
+    public Instant getPublicationBlockedUntil() {
+        return publicationBlockedUntil;
+    }
+
+    public boolean isPublicationBlocked(Instant now) {
+        return publicationBlockedUntil != null && publicationBlockedUntil.isAfter(now);
+    }
+
+    public boolean isPublicationBlocked() {
+        return isPublicationBlocked(Instant.now());
+    }
+
+    public void blockPublicationsUntil(Instant blockedUntil) {
+        this.publicationBlockedUntil = blockedUntil;
     }
 
     public void markAsDemoAccount() {

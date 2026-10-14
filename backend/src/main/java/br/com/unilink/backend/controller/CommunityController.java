@@ -2,10 +2,13 @@ package br.com.unilink.backend.controller;
 
 import br.com.unilink.backend.dto.CommunityResponse;
 import br.com.unilink.backend.dto.CommunityJoinRequestResponse;
+import br.com.unilink.backend.dto.CommunityMemberResponse;
 import br.com.unilink.backend.dto.CreateCommunityRequest;
+import br.com.unilink.backend.dto.CreateReportRequest;
 import br.com.unilink.backend.dto.PostResponse;
 import br.com.unilink.backend.service.CommunityCatalogService;
 import br.com.unilink.backend.service.PostService;
+import br.com.unilink.backend.service.ReportService;
 import java.util.List;
 import java.security.Principal;
 import jakarta.validation.Valid;
@@ -25,10 +28,15 @@ public class CommunityController {
 
     private final CommunityCatalogService communityCatalogService;
     private final PostService postService;
+    private final ReportService reportService;
 
-    public CommunityController(CommunityCatalogService communityCatalogService, PostService postService) {
+    public CommunityController(
+            CommunityCatalogService communityCatalogService,
+            PostService postService,
+            ReportService reportService) {
         this.communityCatalogService = communityCatalogService;
         this.postService = postService;
+        this.reportService = reportService;
     }
 
     @GetMapping
@@ -52,6 +60,24 @@ public class CommunityController {
         return communityCatalogService.joinOrRequest(communityId, principal.getName());
     }
 
+    @PostMapping("/{communityId}/leave")
+    public CommunityResponse leave(Principal principal, @PathVariable String communityId) {
+        return communityCatalogService.leave(communityId, principal.getName());
+    }
+
+    @GetMapping("/{communityId}/members")
+    public List<CommunityMemberResponse> members(Principal principal, @PathVariable String communityId) {
+        return communityCatalogService.members(communityId, principal.getName());
+    }
+
+    @PostMapping("/{communityId}/members/{memberId}/remove")
+    public CommunityResponse removeMember(
+            Principal principal,
+            @PathVariable String communityId,
+            @PathVariable String memberId) {
+        return communityCatalogService.removeMember(communityId, principal.getName(), memberId);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CommunityResponse create(Principal principal, @Valid @RequestBody CreateCommunityRequest request) {
@@ -72,5 +98,14 @@ public class CommunityController {
             @PathVariable String communityId,
             @PathVariable String requesterId) {
         return communityCatalogService.rejectJoinRequest(communityId, requesterId, principal.getName());
+    }
+
+    @PostMapping("/{communityId}/reports")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void report(
+            Principal principal,
+            @PathVariable String communityId,
+            @Valid @RequestBody CreateReportRequest request) {
+        reportService.createCommunity(principal.getName(), communityId, request);
     }
 }

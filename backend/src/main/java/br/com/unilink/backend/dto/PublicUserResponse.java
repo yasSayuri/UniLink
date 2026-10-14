@@ -12,6 +12,8 @@ public record PublicUserResponse(
         long followersCount,
         long followingCount,
         boolean following,
+        boolean blockedByCurrentUser,
+        boolean blockingCurrentUser,
         String avatarUrl,
         String headerUrl,
         Integer avatarPositionX,

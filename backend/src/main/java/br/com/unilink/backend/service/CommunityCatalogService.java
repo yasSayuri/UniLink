@@ -3,6 +3,7 @@ package br.com.unilink.backend.service;
 import br.com.unilink.backend.dto.CommunityResponse;
 import br.com.unilink.backend.dto.CreateCommunityRequest;
 import br.com.unilink.backend.dto.CommunityJoinRequestResponse;
+import br.com.unilink.backend.dto.CommunityMemberResponse;
 import br.com.unilink.backend.model.Community;
 import br.com.unilink.backend.repository.CommunityRepository;
 import br.com.unilink.backend.repository.UserRepository;
@@ -49,6 +50,61 @@ public class CommunityCatalogService {
             notificationService.notifyPrivateCommunityJoinRequest(requester, saved);
         }
         return toResponse(saved, userId);
+    }
+
+    public CommunityResponse leave(String communityId, String userId) {
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunidade não encontrada."));
+        if (!community.getMemberIds().contains(userId) && !community.hasPendingRequest(userId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Você não participa deste grupo.");
+        }
+        if (community.isOwner(userId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "O administrador não pode sair do próprio grupo.");
+        }
+        community.removeMember(userId);
+        return toResponse(communityRepository.save(community), userId);
+    }
+
+    public List<CommunityMemberResponse> members(String communityId, String requesterId) {
+        Community community = findCommunity(communityId);
+        if (!community.isOwner(requesterId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o administrador pode ver os participantes.");
+        }
+        return community.getMemberIds().stream()
+                .map(userId -> userRepository.findById(userId)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND, "Um participante não foi encontrado.")))
+                .map(user -> new CommunityMemberResponse(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getName(),
+                        user.getCourse(),
+                        user.getCampus(),
+                        user.getAvatarUrl(),
+                        user.getAvatarPositionX(),
+                        user.getAvatarPositionY()))
+                .toList();
+    }
+
+    public CommunityResponse removeMember(String communityId, String requesterId, String memberId) {
+        Community community = findCommunity(communityId);
+        if (!community.isOwner(requesterId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas o administrador pode remover participantes.");
+        }
+        if (!community.getMemberIds().contains(memberId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Participante não encontrado neste grupo.");
+        }
+        if (requesterId.equals(memberId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "O administrador não pode remover a si mesmo.");
+        }
+        var owner = userRepository.findById(requesterId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Administrador não encontrado."));
+        var removedUser = userRepository.findById(memberId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        community.removeMember(memberId);
+        Community saved = communityRepository.save(community);
+        notificationService.notifyCommunityMemberRemoved(owner, removedUser, saved);
+        return toResponse(saved, requesterId);
     }
 
     public CommunityResponse create(CreateCommunityRequest request, String creatorId) {
@@ -145,7 +201,13 @@ public class CommunityCatalogService {
                 community.getVisibility(),
                 community.getMemberIds().size(),
                 community.getMemberIds().contains(userId),
-                community.getPendingRequestUserIds().contains(userId));
+                community.getPendingRequestUserIds().contains(userId),
+                community.isOwner(userId));
+    }
+
+    private Community findCommunity(String communityId) {
+        return communityRepository.findById(communityId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comunidade não encontrada."));
     }
 
     private int normalizePosition(Integer position) {

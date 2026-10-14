@@ -12,5 +12,6 @@ public record CommunityResponse(
         String visibility,
         long memberCount,
         boolean member,
-        boolean requestPending) {
+        boolean requestPending,
+        boolean owner) {
 }

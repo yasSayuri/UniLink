@@ -141,6 +141,18 @@ public class NotificationService {
                 "/comunidades");
     }
 
+    public void notifyCommunityMemberRemoved(User actor, User removedUser, Community community) {
+        createNotification(
+                removedUser.getId(),
+                "COMMUNITY_MEMBER_REMOVED",
+                actor.getName() + " removeu você do grupo " + community.getName() + ".",
+                actor,
+                null,
+                community.getId(),
+                community.getName(),
+                "/comunidades");
+    }
+
     private void createNotification(
             String userId,
             String type,

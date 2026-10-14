@@ -116,6 +116,21 @@ export function unfollowUser(userId) {
     });
 }
 
+export function blockUser(userId) {
+  return apiRequest(`/api/v1/users/${encodeURIComponent(userId)}/block`, { method: 'POST' });
+}
+
+export function unblockUser(userId) {
+  return apiRequest(`/api/v1/users/${encodeURIComponent(userId)}/block`, { method: 'DELETE' });
+}
+
+export function reportUser(userId, reason, blockWithReport = false) {
+  return apiRequest(`/api/v1/users/${encodeURIComponent(userId)}/reports`, {
+    method: 'POST',
+    body: JSON.stringify({ reason, blockWithReport }),
+  });
+}
+
 export function getCommunities() {
   return apiRequest('/api/v1/communities');
 }
@@ -148,6 +163,20 @@ export function getUserSuggestions() {
 
 export function joinCommunity(communityId) {
   return apiRequest(`/api/v1/communities/${encodeURIComponent(communityId)}/join`, { method: 'POST' });
+}
+
+export function leaveCommunity(communityId) {
+  return apiRequest(`/api/v1/communities/${encodeURIComponent(communityId)}/leave`, { method: 'POST' });
+}
+
+export function getCommunityMembers(communityId) {
+  return apiRequest(`/api/v1/communities/${encodeURIComponent(communityId)}/members`);
+}
+
+export function removeCommunityMember(communityId, memberId) {
+  return apiRequest(`/api/v1/communities/${encodeURIComponent(communityId)}/members/${encodeURIComponent(memberId)}/remove`, {
+    method: 'POST',
+  });
 }
 
 export function getCommunityJoinRequests() {
@@ -281,4 +310,18 @@ export function repostPost(postId) {
 
 export function undoRepost(postId) {
   return apiRequest(`/api/v1/posts/${encodeURIComponent(postId)}/reposts`, { method: 'DELETE' });
+}
+
+export function reportPost(postId, reason) {
+  return apiRequest(`/api/v1/posts/${encodeURIComponent(postId)}/reports`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function reportCommunity(communityId, reason) {
+  return apiRequest(`/api/v1/communities/${encodeURIComponent(communityId)}/reports`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
 }

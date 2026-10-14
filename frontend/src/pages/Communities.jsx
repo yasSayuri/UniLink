@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Camera, Check, Flag, Globe2, Lock, Plus, Users, X,
+  ArrowLeft, ArrowRight, Camera, Check, Flag, Globe2, Lock, LogOut, MoreVertical, Plus, UserMinus, Users, X,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FeedHeader from '../components/feed/FeedHeader';
@@ -14,13 +14,26 @@ import {
   createPost,
   getCommunities,
   getCommunityJoinRequests,
+  getCommunityMembers,
   getCommunityPosts,
   getCurrentUser,
   getNotifications,
   joinCommunity,
+  leaveCommunity,
   markNotificationAsRead,
   rejectCommunityJoinRequest,
+  reportCommunity,
+  removeCommunityMember,
 } from '../utils/authApi';
+
+const REPORT_REASONS = [
+  ['INAPPROPRIATE_CONTENT', 'Conteúdo inadequado'],
+  ['VIOLENCE_OR_THREATS', 'Violência ou ameaça'],
+  ['HATE_SPEECH', 'Discurso de ódio'],
+  ['SPAM_OR_SCAM', 'Spam ou golpe'],
+  ['PERSONAL_DATA', 'Divulgação de dados pessoais'],
+  ['OTHER', 'Outro'],
+];
 
 function readGroupImage(event, setDraft) {
   const file = event.target.files?.[0];
@@ -48,6 +61,16 @@ export default function Communities() {
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [createGroupError, setCreateGroupError] = useState('');
   const [reportNotice, setReportNotice] = useState('');
+  const [reportGroup, setReportGroup] = useState(null);
+  const [reportReason, setReportReason] = useState('');
+  const [reporting, setReporting] = useState(false);
+  const [openCommunityMenu, setOpenCommunityMenu] = useState('');
+  const [leaveGroup, setLeaveGroup] = useState(null);
+  const [leavingGroup, setLeavingGroup] = useState(false);
+  const [membersGroup, setMembersGroup] = useState(null);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [communityRequests, setCommunityRequests] = useState([]);
   const [handlingRequestId, setHandlingRequestId] = useState('');
@@ -228,6 +251,74 @@ export default function Communities() {
     }
   };
 
+  const submitGroupReport = async (event) => {
+    event.preventDefault();
+    if (!reportGroup || !reportReason || reporting) return;
+    setReporting(true);
+    try {
+      await reportCommunity(reportGroup.id, reportReason);
+      setReportNotice(reportGroup.name);
+      setReportGroup(null);
+      setReportReason('');
+    } catch (requestError) {
+      setLoadError(requestError.message);
+    } finally {
+      setReporting(false);
+    }
+  };
+
+  const submitLeaveGroup = async () => {
+    if (!leaveGroup || leavingGroup) return;
+    const groupToLeave = leaveGroup;
+    setLeaveGroup(null);
+    setLeavingGroup(true);
+    try {
+      const updatedCommunity = await leaveCommunity(groupToLeave.id);
+      setCommunities((current) => current.map((item) => (
+        item.id === updatedCommunity.id ? updatedCommunity : item
+      )));
+      if (selectedCommunity === groupToLeave.name) {
+        setSelectedCommunity('all');
+        setMobileTab('discover');
+      }
+    } catch (requestError) {
+      setLoadError(requestError.message);
+    } finally {
+      setLeavingGroup(false);
+    }
+  };
+
+  const openMembers = async (community) => {
+    if (!community.owner) return;
+    setMembersGroup(community);
+    setLoadingMembers(true);
+    try {
+      setGroupMembers(await getCommunityMembers(community.id));
+    } catch (requestError) {
+      setLoadError(requestError.message);
+      setMembersGroup(null);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const removeMember = async (member) => {
+    if (!membersGroup || removingMemberId) return;
+    setRemovingMemberId(member.id);
+    try {
+      const updatedCommunity = await removeCommunityMember(membersGroup.id, member.id);
+      setGroupMembers((current) => current.filter((item) => item.id !== member.id));
+      setCommunities((current) => current.map((item) => (
+        item.id === updatedCommunity.id ? updatedCommunity : item
+      )));
+      setMembersGroup((current) => ({ ...current, ...updatedCommunity }));
+    } catch (requestError) {
+      setLoadError(requestError.message);
+    } finally {
+      setRemovingMemberId('');
+    }
+  };
+
   const openGroupFeed = (communityName) => {
     setSelectedCommunity(communityName);
     setMobileTab('feed');
@@ -330,14 +421,40 @@ export default function Communities() {
               <button type="button" onClick={backToGeneral} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 transition hover:text-slate-800">
                 <ArrowLeft className="h-3.5 w-3.5" />Voltar para geral
               </button>
-              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div className="relative h-40 overflow-hidden bg-slate-200 sm:h-48">
                   <img src={selectedCommunityDetails.imageUrl} alt={`Imagem do grupo ${selectedCommunityDetails.name}`} className="h-full w-full object-cover" loading="lazy" />
                 </div>
                 <div className="relative px-4 pb-4 pt-3 sm:px-5">
                   <h1 className="text-xl font-extrabold text-slate-800">{selectedCommunityDetails.name}</h1>
                   <p className="mt-1 text-sm leading-relaxed text-slate-600">{selectedCommunityDetails.description}</p>
-                  <p className="mt-2 text-xs text-slate-500">{selectedCommunityDetails.category} · {selectedCommunityDetails.memberCount} participantes · {selectedCommunityDetails.visibility === 'PRIVATE' ? 'Privado' : 'Público'}</p>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <p className="text-xs text-slate-500">
+                      {selectedCommunityDetails.category} ·{' '}
+                      {selectedCommunityDetails.owner ? (
+                        <button type="button" onClick={() => openMembers(selectedCommunityDetails)} className="font-semibold text-amber-800 underline-offset-2 hover:underline">
+                          {selectedCommunityDetails.memberCount} participantes
+                        </button>
+                      ) : `${selectedCommunityDetails.memberCount} participantes`} · {selectedCommunityDetails.visibility === 'PRIVATE' ? 'Privado' : 'Público'}
+                    </p>
+                    <div className="relative shrink-0">
+                      <button type="button" onClick={() => setOpenCommunityMenu((current) => current === selectedCommunityDetails.id ? '' : selectedCommunityDetails.id)} aria-label="Mais opções do grupo" title="Mais opções" className="rounded-full p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-800">
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                      {openCommunityMenu === selectedCommunityDetails.id && (
+                        <div className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                          <button type="button" onClick={() => { setOpenCommunityMenu(''); setReportGroup(selectedCommunityDetails); setReportReason(''); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100">
+                            <Flag className="h-3.5 w-3.5" />Denunciar grupo
+                          </button>
+                          {selectedCommunityDetails.member && (
+                            <button type="button" onClick={() => { setOpenCommunityMenu(''); setLeaveGroup(selectedCommunityDetails); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-700 hover:bg-red-50">
+                              <LogOut className="h-3.5 w-3.5" />Sair do grupo
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -395,7 +512,7 @@ export default function Communities() {
               ) : loading ? (
                 <p className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Carregando comunidades...</p>
               ) : communities.length ? communities.map((community) => (
-                <article id={`discover-community-${community.id}`} key={community.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <article id={`discover-community-${community.id}`} key={community.id} className="overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                   <div className="relative aspect-[16/7] overflow-hidden bg-slate-200">
                     <img src={community.imageUrl} alt={`Imagem do grupo ${community.name}`} className="h-full w-full object-cover" style={{ objectPosition: `${community.imagePosition?.x ?? 50}% ${community.imagePosition?.y ?? 50}%` }} loading="lazy" />
                     <span className="absolute left-3 top-3 rounded-lg bg-white/95 px-2.5 py-1.5 text-[10px] font-bold text-slate-800">{community.category}</span>
@@ -407,13 +524,13 @@ export default function Communities() {
                         {community.name}
                       </button>
                       <p className="mt-1 text-xs leading-relaxed text-slate-500">{community.description}</p>
-                      <p className="mt-2 text-[10px] text-slate-400">{community.campus} · {community.memberCount} participantes</p>
+                      <p className="mt-2 text-[10px] text-slate-400">{community.campus} · {community.memberCount} participantes · {community.visibility === 'PRIVATE' ? 'Privado' : 'Público'}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <button type="button" disabled={community.requestPending} onClick={() => enterCommunity(community)} className={`rounded-lg px-3 py-2.5 text-xs font-bold transition disabled:cursor-default disabled:opacity-70 ${community.requestPending ? 'bg-slate-100 text-slate-500' : 'bg-[#FFF8E6] text-amber-900 hover:bg-amber-100'}`}>
                         {community.requestPending ? 'Solicitação enviada' : community.member ? 'Participando' : community.visibility === 'PRIVATE' ? 'Pedir participação' : 'Participar'}
                       </button>
-                      <button type="button" onClick={() => setReportNotice(community.name)} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200">
+                      <button type="button" onClick={() => { setReportGroup(community); setReportReason(''); }} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200">
                         <Flag className="h-3.5 w-3.5" />Denunciar grupo
                       </button>
                     </div>
@@ -502,12 +619,92 @@ export default function Communities() {
           </section>
         </div>
       )}
+      {leaveGroup && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !leavingGroup) setLeaveGroup(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="leave-community-title" className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-800"><LogOut className="h-6 w-6" /></span>
+            <h2 id="leave-community-title" className="mt-4 text-center text-lg font-extrabold text-slate-900">Sair do grupo?</h2>
+            <p className="mt-2 text-center text-sm leading-relaxed text-slate-500">
+              Você deixará de ver as publicações de <strong>{leaveGroup.name}</strong>. Para participar novamente, será necessário entrar de novo
+              {leaveGroup.visibility === 'PRIVATE' ? ' e aguardar uma nova aprovação.' : '.'}
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" disabled={leavingGroup} onClick={() => setLeaveGroup(null)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">Cancelar</button>
+              <button type="button" disabled={leavingGroup} onClick={submitLeaveGroup} className="rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50">{leavingGroup ? 'Saindo...' : 'Sair do grupo'}</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {membersGroup && (
+        <div className="fixed inset-0 z-[125] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !removingMemberId) setMembersGroup(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="community-members-title" className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div>
+                <h2 id="community-members-title" className="text-base font-extrabold text-slate-800">Participantes</h2>
+                <p className="mt-1 text-xs text-slate-500">{membersGroup.name}</p>
+              </div>
+              <button type="button" disabled={Boolean(removingMemberId)} onClick={() => setMembersGroup(null)} aria-label="Fechar" className="rounded-full p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="max-h-[60vh] space-y-2 overflow-y-auto p-4">
+              {loadingMembers ? (
+                <p className="py-8 text-center text-sm text-slate-500">Carregando participantes...</p>
+              ) : groupMembers.length ? groupMembers.map((member) => (
+                <div key={member.id} className="flex items-center gap-3 rounded-2xl px-2 py-2">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3C4] font-bold text-slate-800">
+                    {member.avatarUrl
+                      ? <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" style={{ objectPosition: `${member.avatarPositionX ?? 50}% ${member.avatarPositionY ?? 50}%` }} />
+                      : member.name.charAt(0).toLocaleUpperCase('pt-BR')}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-slate-800">{member.name}</p>
+                    <p className="truncate text-xs text-slate-500">@{member.username}</p>
+                  </div>
+                  {member.id !== user?.id && (
+                    <button type="button" disabled={Boolean(removingMemberId)} onClick={() => removeMember(member)} className="inline-flex items-center gap-1 rounded-full border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                      <UserMinus className="h-3.5 w-3.5" />{removingMemberId === member.id ? 'Removendo...' : 'Remover'}
+                    </button>
+                  )}
+                </div>
+              )) : (
+                <p className="py-8 text-center text-sm text-slate-500">Nenhum participante encontrado.</p>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+      {reportGroup && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !reporting) setReportGroup(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="community-report-form-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <form onSubmit={submitGroupReport}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 id="community-report-form-title" className="text-lg font-extrabold text-slate-900">Denunciar grupo</h2>
+                  <p className="mt-1 text-sm text-slate-500">Por que você deseja denunciar <strong>{reportGroup.name}</strong>?</p>
+                </div>
+                <button type="button" disabled={reporting} onClick={() => setReportGroup(null)} aria-label="Fechar" className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"><X className="h-5 w-5" /></button>
+              </div>
+              <div className="mt-5 space-y-2">
+                {REPORT_REASONS.map(([value, label]) => (
+                  <label key={value} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition ${reportReason === value ? 'border-amber-400 bg-amber-50 text-slate-900' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    <input type="radio" name="community-report-reason" value={value} checked={reportReason === value} onChange={(event) => setReportReason(event.target.value)} className="accent-amber-500" />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button type="button" disabled={reporting} onClick={() => setReportGroup(null)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">Cancelar</button>
+                <button type="submit" disabled={!reportReason || reporting} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{reporting ? 'Enviando...' : 'Enviar denúncia'}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
       {reportNotice && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setReportNotice(''); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="community-report-title" className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-700"><Flag className="h-6 w-6" /></span>
             <h2 id="community-report-title" className="mt-4 text-base font-extrabold text-slate-800">Denúncia enviada</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">Recebemos sua denúncia sobre o grupo <strong>{reportNotice}</strong>. Nossa equipe vai analisar.</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">Sua denúncia foi enviada e será revisada. Obrigado por nos ajudar a manter a comunidade saudável e um ambiente seguro para todos.</p>
             <button type="button" onClick={() => setReportNotice('')} className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-700">Entendi</button>
           </section>
         </div>

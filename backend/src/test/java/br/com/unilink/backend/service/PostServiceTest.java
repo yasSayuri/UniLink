@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +43,9 @@ class PostServiceTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private UserBlockService userBlockService;
 
     @InjectMocks
     private PostService postService;
@@ -95,6 +99,39 @@ class PostServiceTest {
 
         assertThrows(org.springframework.web.server.ResponseStatusException.class, () ->
                 postService.create("viewer", new CreatePostRequest("Post inválido", "PUBLIC", null, List.of(media))));
+    }
+
+    @Test
+    void blocksModeratedPostWithoutSavingIt() {
+        User user = new User("student", "Student", "student@example.com", "hash");
+        when(userRepository.findById("viewer")).thenReturn(Optional.of(user));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+                postService.create("viewer", new CreatePostRequest(
+                        "Vou te matar.", "PUBLIC", null, List.of())));
+
+        assertEquals(422, exception.getStatusCode().value());
+        assertEquals(ContentModerationService.BLOCKED_MESSAGE, exception.getReason());
+        verify(userRepository).save(user);
+        verify(postRepository, org.mockito.Mockito.never()).save(any(Post.class));
+    }
+
+    @Test
+    void rejectsFurtherPostsDuringTemporaryModerationBlock() {
+        User user = new User("student", "Student", "student@example.com", "hash");
+        when(userRepository.findById("viewer")).thenReturn(Optional.of(user));
+
+        assertThrows(ResponseStatusException.class, () ->
+                postService.create("viewer", new CreatePostRequest(
+                        "Vou te matar.", "PUBLIC", null, List.of())));
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () ->
+                postService.create("viewer", new CreatePostRequest(
+                        "Conteúdo normal.", "PUBLIC", null, List.of())));
+
+        assertEquals(422, exception.getStatusCode().value());
+        org.junit.jupiter.api.Assertions.assertTrue(exception.getReason().contains("minuto"));
+        verify(userRepository, org.mockito.Mockito.times(1)).save(user);
+        verify(postRepository, org.mockito.Mockito.never()).save(any(Post.class));
     }
 
     @Test
@@ -184,6 +221,18 @@ class PostServiceTest {
 
         assertEquals(1, result.size());
         assertEquals(null, result.get(0).communityName());
+    }
+
+    @Test
+    void hidesBlockedUsersPostsFromProfileAndHashtagQueries() {
+        Post blockedPost = new Post("blocked", "Student", "student", null, null, null,
+                "Content #uni", "PUBLIC", null, List.of(), List.of("uni"));
+        when(userRepository.existsById("blocked")).thenReturn(true);
+        when(userBlockService.isBlockedEither("blocked", "viewer")).thenReturn(true);
+        when(postRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(blockedPost));
+
+        assertEquals(List.of(), postService.profilePosts("blocked", "viewer"));
+        assertEquals(List.of(), postService.listByHashtag("uni", "viewer"));
     }
 
     private Post post(String authorId, String privacy) {
