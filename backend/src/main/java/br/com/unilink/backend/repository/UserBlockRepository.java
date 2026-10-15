@@ -10,5 +10,9 @@ public interface UserBlockRepository extends MongoRepository<UserBlock, String> 
 
     void deleteByBlockerIdAndBlockedId(String blockerId, String blockedId);
 
+    void deleteByBlockerId(String blockerId);
+
+    void deleteByBlockedId(String blockedId);
+
     List<UserBlock> findAllByBlockerId(String blockerId);
 }

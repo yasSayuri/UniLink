@@ -3,7 +3,7 @@ import { Bell, ChevronDown, LogOut, Search, User, UserPlus, X } from 'lucide-rea
 import { Link, useNavigate } from 'react-router-dom';
 import UniLinkLogo from '../branding/UniLinkLogo';
 import {
-  followUser, getNotifications, markAllNotificationsAsRead, markNotificationAsRead, searchUsers, unfollowUser,
+  acceptFollowRequest, followUser, getNotifications, markAllNotificationsAsRead, markNotificationAsRead, rejectFollowRequest, searchUsers, unfollowUser,
 } from '../../utils/authApi';
 
 function formatNotificationTime(createdAt) {
@@ -192,6 +192,19 @@ export default function FeedHeader() {
     }
   };
 
+  const respondToFollowRequest = async (notification, accepted) => {
+    try {
+      if (accepted) {
+        await acceptFollowRequest(notification.actorId);
+      } else {
+        await rejectFollowRequest(notification.actorId);
+      }
+      setNotifications((current) => current.filter((item) => item.id !== notification.id));
+    } catch (error) {
+      setNotificationsError(error.message);
+    }
+  };
+
   const toggleNotifications = async () => {
     const nextOpen = !notificationOpen;
     if (nextOpen && unreadCount > 0) {
@@ -307,6 +320,12 @@ export default function FeedHeader() {
                     <span className="min-w-0 flex-1">
                       <span className="block text-xs font-semibold text-slate-800">{notification.message}</span>
                       <span className="mt-1 block text-[11px] text-slate-500">{formatNotificationTime(notification.createdAt)}</span>
+                      {notification.type === 'PRIVATE_FOLLOW_REQUEST' && (
+                        <span className="mt-2 flex gap-2">
+                          <button type="button" onClick={(event) => { event.stopPropagation(); respondToFollowRequest(notification, true); }} className="rounded-lg bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-200">Aceitar</button>
+                          <button type="button" onClick={(event) => { event.stopPropagation(); respondToFollowRequest(notification, false); }} className="rounded-lg bg-red-100 px-2 py-1 text-[10px] font-bold text-red-700 hover:bg-red-200">Recusar</button>
+                        </span>
+                      )}
                     </span>
                     {!notification.read && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[#D9A000]" />}
                   </button>

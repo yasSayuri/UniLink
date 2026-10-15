@@ -19,5 +19,7 @@ public record PublicUserResponse(
         Integer avatarPositionX,
         Integer avatarPositionY,
         Integer headerPositionX,
-        Integer headerPositionY) {
+        Integer headerPositionY,
+        boolean privateAccount,
+        boolean pendingFollowRequest) {
 }

@@ -88,8 +88,9 @@ public class PostService {
                 .collect(java.util.stream.Collectors.toSet());
         var visiblePosts = new ArrayList<>(postRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(post -> Objects.equals(post.getAuthorId(), viewerId)
-                        || (followedIds.contains(post.getAuthorId()) && canViewPost(post, viewerId)))
+                        || (followedIds.contains(post.getAuthorId()) && canViewPost(post, viewerId, true)))
                 .filter(post -> isVisibleToViewer(post.getAuthorId(), viewerId))
+                .filter(post -> !containsBlockedWord(post, viewerId))
                 .toList());
         Collections.shuffle(visiblePosts);
         return visiblePosts.stream()
@@ -102,9 +103,9 @@ public class PostService {
         return postRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(post -> post.getHashtags().stream()
                         .anyMatch(item -> normalizedHashtag.equals(item.toLowerCase(java.util.Locale.ROOT))))
-                .filter(post -> post.getPrivacy() == null || "PUBLIC".equals(post.getPrivacy()))
-                .filter(post -> post.getCommunityName() == null || canViewPost(post, viewerId))
+                .filter(post -> canViewPost(post, viewerId, true))
                 .filter(post -> isVisibleToViewer(post.getAuthorId(), viewerId))
+                .filter(post -> !containsBlockedWord(post, viewerId))
                 .map(post -> toResponse(post, viewerId, false))
                 .toList();
     }
@@ -120,7 +121,8 @@ public class PostService {
                 .filter(post -> Objects.equals(post.getAuthorId(), profileId)
                         || post.getRepostedBy().contains(profileId))
                 .filter(post -> post.getCommunityName() == null)
-                .filter(post -> canViewPost(post, viewerId))
+                .filter(post -> canViewPost(post, viewerId, true))
+                .filter(post -> !containsBlockedWord(post, viewerId))
                 .map(post -> toResponse(
                         post,
                         viewerId,
@@ -141,7 +143,9 @@ public class PostService {
                         && (communityName == null || communityName.equals(post.getCommunityName()))
                         && canViewCommunity(communities.get(post.getCommunityName()), viewerId)
                         && (post.getPrivacy() == null || "PUBLIC".equals(post.getPrivacy())))
+                .filter(post -> canViewPost(post, viewerId, true))
                 .filter(post -> isVisibleToViewer(post.getAuthorId(), viewerId))
+                .filter(post -> !containsBlockedWord(post, viewerId))
                 .map(post -> toResponse(post, viewerId, false))
                 .toList();
     }
@@ -309,15 +313,17 @@ public class PostService {
     private Post findInteractablePost(String postId, String viewerId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada."));
-        if (!canViewPost(post, viewerId)) {
+        if (!canViewPost(post, viewerId, true)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não pode interagir com esta publicação.");
         }
         return post;
     }
 
-    private boolean canViewPost(Post post, String viewerId) {
+    private boolean canViewPost(Post post, String viewerId, boolean checkPrivateAccount) {
         if (Objects.equals(post.getAuthorId(), viewerId)) return true;
         if (isBlockedEither(post.getAuthorId(), viewerId)) return false;
+        if (checkPrivateAccount && userBlockService != null && isPrivateAccount(post.getAuthorId())
+                && !followRepository.existsByFollowerIdAndFollowedId(viewerId, post.getAuthorId())) return false;
         if ("PRIVATE".equals(post.getPrivacy())) return false;
         if ("FOLLOWERS".equals(post.getPrivacy())
                 && !followRepository.existsByFollowerIdAndFollowedId(viewerId, post.getAuthorId())) return false;
@@ -334,6 +340,27 @@ public class PostService {
 
     private boolean isVisibleToViewer(String authorId, String viewerId) {
         return Objects.equals(authorId, viewerId) || !isBlockedEither(authorId, viewerId);
+    }
+
+    private boolean isPrivateAccount(String authorId) {
+        if (authorId == null) return false;
+        try {
+            var optionalAuthor = userRepository.findById(authorId);
+            return optionalAuthor != null
+                    && optionalAuthor.map(br.com.unilink.backend.model.User::isPrivateAccount).orElse(false);
+        } catch (RuntimeException ignored) {
+            // A missing author record should not make an otherwise public post unavailable.
+            return false;
+        }
+    }
+
+    private boolean containsBlockedWord(Post post, String viewerId) {
+        if (Objects.equals(post.getAuthorId(), viewerId)) return false;
+        var viewer = userRepository.findById(viewerId);
+        if (viewer == null || viewer.isEmpty()) return false;
+        String content = post.getContent() == null ? "" : post.getContent().toLowerCase(java.util.Locale.ROOT);
+        return viewer.get().getBlockedWords().stream()
+                .anyMatch(word -> !word.isBlank() && content.contains(word.toLowerCase(java.util.Locale.ROOT)));
     }
 
     private List<PostMedia> validateMedia(List<br.com.unilink.backend.dto.PostMediaRequest> mediaRequests) {
@@ -372,6 +399,9 @@ public class PostService {
                     .map(br.com.unilink.backend.model.User::getAvatarUrl)
                     .orElse(null);
         }
+        String authorCourse = userRepository.findById(post.getAuthorId())
+                .map(br.com.unilink.backend.model.User::getCourse)
+                .orElse(null);
         return new PostResponse(
                 post.getId(),
                 post.getAuthorId(),
@@ -380,6 +410,7 @@ public class PostService {
                 authorAvatarUrl,
                 post.getInstitutionName(),
                 post.getCampus(),
+                authorCourse,
                 post.getContent(),
                 post.getPrivacy(),
                 post.getCommunityName(),

@@ -7,8 +7,9 @@ import FeedSidebar from '../components/feed/FeedSidebar';
 import OnboardingModal from '../components/onboarding/OnboardingModal';
 import PostCard from '../components/feed/PostCard';
 import PostComposer from '../components/feed/PostComposer';
+import useAcademicFilters from '../hooks/useAcademicFilters';
 import {
-  CONNECTIONS_CHANGED_EVENT, createPost, followUser, getCurrentUser, getNotifications, getPosts, getUserSuggestions, markNotificationAsRead,
+  CONNECTIONS_CHANGED_EVENT, createPost, followUser, getCurrentUser, getEvents, getNotifications, getPosts, getUserSuggestions, markNotificationAsRead,
 } from '../utils/authApi';
 
 function readSavedUser() {
@@ -19,6 +20,15 @@ function readSavedUser() {
   }
 }
 
+function formatEventDate(date, time) {
+  if (!date) return time || '';
+  const parsedDate = new Date(`${date}T12:00:00`);
+  const formattedDate = Number.isNaN(parsedDate.getTime())
+    ? date
+    : new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' }).format(parsedDate);
+  return time ? `${formattedDate} · ${time}` : formattedDate;
+}
+
 export default function Feed() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,12 +36,19 @@ export default function Feed() {
   const [posts, setPosts] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [eventsError, setEventsError] = useState('');
   const [suggestionsError, setSuggestionsError] = useState('');
   const [loading, setLoading] = useState(true);
   const [suggestionsLoading, setSuggestionsLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [publishError, setPublishError] = useState('');
+  const {
+    institutions, campuses, courses, filterInstitution, filterCampus, filterCourse,
+    campusesLoading, coursesLoading, handleInstitutionChange, handleCampusChange,
+    setFilterCourse, matchesFilters,
+  } = useAcademicFilters(setLoadError);
   const topNotifications = notifications.slice(0, 3);
 
   useEffect(() => {
@@ -69,6 +86,23 @@ export default function Feed() {
     return () => {
       active = false;
       window.removeEventListener(CONNECTIONS_CHANGED_EVENT, loadFeed);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getEvents()
+      .then((items) => {
+        if (active) {
+          setEvents(items);
+          setEventsError('');
+        }
+      })
+      .catch((requestError) => {
+        if (active) setEventsError(requestError.message);
+      });
+    return () => {
+      active = false;
     };
   }, []);
 
@@ -113,6 +147,8 @@ export default function Feed() {
     }
   };
 
+  const visiblePosts = posts.filter(matchesFilters);
+
   const openNotificationTarget = async (notification) => {
     if (!notification.read) {
       try {
@@ -144,7 +180,19 @@ export default function Feed() {
     <div className="large-screen-dashboard min-h-screen bg-[#F4F5F7] pb-24 font-sans text-slate-700 lg:h-dvh lg:overflow-hidden lg:pb-0">
       <FeedHeader />
       <div className="mx-auto mt-4 grid max-w-7xl grid-cols-1 gap-4 px-3 sm:mt-6 sm:gap-6 sm:px-4 lg:h-[calc(100dvh-96px)] lg:grid-cols-12 lg:items-stretch">
-        <FeedSidebar />
+        <FeedSidebar
+          filterInstitution={filterInstitution}
+          filterCampus={filterCampus}
+          filterCourse={filterCourse}
+          institutions={institutions}
+          campuses={campuses}
+          courses={courses}
+          campusesLoading={campusesLoading}
+          coursesLoading={coursesLoading}
+          onInstitutionFilterChange={handleInstitutionChange}
+          onCampusFilterChange={handleCampusChange}
+          onCourseFilterChange={setFilterCourse}
+        />
 
         <main className="primary-scroll col-span-1 min-w-0 space-y-5 lg:col-span-6 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
           <PostComposer user={user} onSubmit={publishPost} error={publishError} publishing={publishing} />
@@ -154,8 +202,10 @@ export default function Feed() {
               <p className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Carregando publicações...</p>
             ) : loadError ? (
               <p role="alert" className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">{loadError}</p>
+            ) : visiblePosts.length ? (
+              visiblePosts.map((post) => <PostCard key={post.id} post={post} onDeleted={(postId) => setPosts((current) => current.filter((item) => item.id !== postId))} />)
             ) : posts.length ? (
-              posts.map((post) => <PostCard key={post.id} post={post} onDeleted={(postId) => setPosts((current) => current.filter((item) => item.id !== postId))} />)
+              <p className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">Nenhuma publicação corresponde aos filtros selecionados.</p>
             ) : user?.followingCount === 0 && user?.followersCount === 0 ? (
               <div className="rounded-3xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
                 <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF3C4] text-amber-800"><UsersRound className="h-6 w-6" /></span>
@@ -222,19 +272,26 @@ export default function Feed() {
           <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-800">Eventos</h2>
-              <button type="button" className="text-xs text-slate-400">Ver tudo &gt;</button>
+              <Link to="/eventos" className="text-xs text-slate-400">Ver tudo &gt;</Link>
             </div>
-            <div className="space-y-3">
-              {[
-                { title: 'Feira de estágios UTFPR', date: '15 de Set · 09:00', location: 'Bloco E - Campus Centro' },
-                { title: 'Semana Acadêmica de Computação', date: '22 de Set · 19:00', location: 'Auditório da UTFPR' },
-              ].map((event) => (
-                <div key={event.title} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#FFF8E6] text-[#D9A000]"><Calendar className="h-4 w-4" /></span>
-                  <div><h3 className="text-xs font-bold leading-tight text-slate-800">{event.title}</h3><p className="mt-0.5 text-[10px] text-slate-400">{event.date}</p><p className="text-[10px] text-slate-400">{event.location}</p></div>
-                </div>
-              ))}
-            </div>
+            {eventsError ? (
+              <p role="alert" className="py-2 text-xs text-red-600">{eventsError}</p>
+            ) : events.length ? (
+              <div className="space-y-3">
+                {events.slice(0, 2).map((event) => (
+                  <div key={event.id} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#FFF8E6] text-[#D9A000]"><Calendar className="h-4 w-4" /></span>
+                    <div>
+                      <h3 className="text-xs font-bold leading-tight text-slate-800">{event.title}</h3>
+                      <p className="mt-0.5 text-[10px] text-slate-400">{formatEventDate(event.date, event.time)}</p>
+                      <p className="text-[10px] text-slate-400">{event.location}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="py-2 text-xs text-slate-500">Ainda não há eventos criados.</p>
+            )}
           </section>
 
         </aside>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Ban, BookOpen, Camera, Flag, GraduationCap, MapPin, MoreVertical, Pencil, Unlock, UserPlus, X } from 'lucide-react';
+import { Ban, BookOpen, Camera, Flag, GraduationCap, Lock, MapPin, MoreVertical, Pencil, Unlock, UserPlus, X } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import FeedHeader from '../components/feed/FeedHeader';
 import FeedMobileNav from '../components/feed/FeedMobileNav';
@@ -281,12 +281,22 @@ export default function Profile() {
     setFollowingBusy(true);
     setError('');
     try {
-      if (user.following) {
+      if (user.following || user.pendingFollowRequest) {
         await unfollowUser(user.id);
-        setUser((current) => ({ ...current, following: false, followersCount: Math.max(0, current.followersCount - 1) }));
+        setUser((current) => ({
+          ...current,
+          following: false,
+          pendingFollowRequest: false,
+          followersCount: current.following ? Math.max(0, current.followersCount - 1) : current.followersCount,
+        }));
       } else {
         await followUser(user.id);
-        setUser((current) => ({ ...current, following: true, followersCount: current.followersCount + 1 }));
+        setUser((current) => ({
+          ...current,
+          following: !current.privateAccount,
+          pendingFollowRequest: Boolean(current.privateAccount),
+          followersCount: current.privateAccount ? current.followersCount : current.followersCount + 1,
+        }));
       }
     } catch (requestError) {
       setError(requestError.message);
@@ -302,7 +312,7 @@ export default function Profile() {
     try {
       if (blockDialog === 'block') {
         await blockUser(user.id);
-        setUser((current) => ({ ...current, blockedByCurrentUser: true, following: false }));
+        setUser((current) => ({ ...current, blockedByCurrentUser: true, following: false, pendingFollowRequest: false }));
         setPosts([]);
       } else {
         await unblockUser(user.id);
@@ -326,7 +336,7 @@ export default function Profile() {
     try {
       await reportUser(user.id, reportReason, reportWithBlock);
       if (reportWithBlock) {
-        setUser((current) => ({ ...current, blockedByCurrentUser: true, following: false }));
+        setUser((current) => ({ ...current, blockedByCurrentUser: true, following: false, pendingFollowRequest: false }));
         setPosts([]);
       }
       setReportSubmitted(true);
@@ -374,7 +384,10 @@ export default function Profile() {
 
               <div className="-mt-6 flex flex-col">
                 <div>
-                  <h2 className="text-lg font-extrabold leading-tight text-slate-900">{name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-extrabold leading-tight text-slate-900">{name}</h2>
+                    {user?.privateAccount && <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600"><Lock className="h-3 w-3" />Privada</span>}
+                  </div>
                   {username && <p className="mt-0.5 text-xs text-slate-500">{username}</p>}
                 </div>
                 <div className="mt-auto flex items-end justify-between">
@@ -401,9 +414,9 @@ export default function Profile() {
                         type="button"
                         disabled={followingBusy}
                         onClick={toggleProfileFollow}
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-bold transition disabled:opacity-50 ${user.following ? 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200' : 'border-amber-300 bg-[#FFF3C4] text-amber-900 hover:bg-[#FFE99A]'}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-bold transition disabled:opacity-50 ${user.following || user.pendingFollowRequest ? 'border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-200' : 'border-amber-300 bg-[#FFF3C4] text-amber-900 hover:bg-[#FFE99A]'}`}
                       >
-                        {user.following ? 'Seguindo' : <><UserPlus className="h-3.5 w-3.5" />Seguir +</>}
+                        {user.following ? 'Seguindo' : user.pendingFollowRequest ? 'Pendente' : <><UserPlus className="h-3.5 w-3.5" />Seguir +</>}
                       </button>}
                       {blockingCurrentUser && <span className="px-3 text-xs font-semibold text-slate-500">Este usuário bloqueou você.</span>}
                       <div className="relative flex items-center" ref={menuRef}>
@@ -468,6 +481,12 @@ export default function Profile() {
             ) : blockingCurrentUser ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
                 <h2 className="text-sm font-bold text-slate-700">As publicações deste usuário não estão disponíveis.</h2>
+              </div>
+            ) : user?.privateAccount && !isOwnProfile && !user.following ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <Lock className="mx-auto h-6 w-6 text-amber-700" />
+                <h2 className="mt-2 text-sm font-bold text-slate-700">Esta conta é privada.</h2>
+                <p className="mt-1 text-xs text-slate-500">{user.pendingFollowRequest ? 'Sua solicitação está pendente. Cancele-a pelo botão acima ou aguarde a aprovação.' : 'Siga este usuário para ver suas publicações e comentários.'}</p>
               </div>
             ) : posts.length ? posts.map((post) => <PostCard key={`${post.id}-${post.reposted}`} post={post} />) : (
               <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">

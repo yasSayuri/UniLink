@@ -117,6 +117,21 @@ public class NotificationService {
                 "/perfil/" + actor.getId());
     }
 
+    public void notifyPrivateFollowRequest(User requester, User target) {
+        if (requester.getId().equals(target.getId())) {
+            return;
+        }
+        createNotification(
+                target.getId(),
+                "PRIVATE_FOLLOW_REQUEST",
+                requester.getName() + " pediu para seguir você.",
+                requester,
+                null,
+                null,
+                null,
+                "/perfil/" + requester.getId());
+    }
+
     public void notifyPrivateCommunityRequestApproved(User actor, User requester, Community community) {
         createNotification(
                 requester.getId(),

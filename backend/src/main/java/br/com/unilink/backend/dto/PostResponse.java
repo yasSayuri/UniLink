@@ -12,6 +12,7 @@ public record PostResponse(
         String authorAvatarUrl,
         String institutionName,
         String campus,
+        String course,
         String content,
         String privacy,
         String communityName,

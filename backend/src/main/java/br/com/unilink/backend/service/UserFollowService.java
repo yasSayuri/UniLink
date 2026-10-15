@@ -2,7 +2,9 @@ package br.com.unilink.backend.service;
 
 import br.com.unilink.backend.dto.FollowUserResponse;
 import br.com.unilink.backend.model.UserFollow;
+import br.com.unilink.backend.model.UserFollowRequest;
 import br.com.unilink.backend.repository.UserFollowRepository;
+import br.com.unilink.backend.repository.UserFollowRequestRepository;
 import br.com.unilink.backend.repository.UserRepository;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -17,24 +19,35 @@ public class UserFollowService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final UserBlockService userBlockService;
+    private final UserFollowRequestRepository followRequestRepository;
 
     @Autowired
     public UserFollowService(
             UserFollowRepository followRepository,
             UserRepository userRepository,
             NotificationService notificationService,
-            UserBlockService userBlockService) {
+            UserBlockService userBlockService,
+            UserFollowRequestRepository followRequestRepository) {
         this.followRepository = followRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.userBlockService = userBlockService;
+        this.followRequestRepository = followRequestRepository;
     }
 
     public UserFollowService(
             UserFollowRepository followRepository,
             UserRepository userRepository,
             NotificationService notificationService) {
-        this(followRepository, userRepository, notificationService, null);
+        this(followRepository, userRepository, notificationService, null, null);
+    }
+
+    public UserFollowService(
+            UserFollowRepository followRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            UserBlockService userBlockService) {
+        this(followRepository, userRepository, notificationService, userBlockService, null);
     }
 
     public void follow(String followerId, String followedId) {
@@ -49,7 +62,21 @@ public class UserFollowService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
         var followed = userRepository.findById(followedId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        if (followRepository.existsByFollowerIdAndFollowedId(followerId, followedId)) {
+            return;
+        }
+        if (followed.isPrivateAccount()) {
+            if (followRequestRepository != null
+                    && !followRequestRepository.existsByRequesterIdAndTargetId(followerId, followedId)) {
+                followRequestRepository.save(new UserFollowRequest(followerId, followedId));
+                notificationService.notifyPrivateFollowRequest(follower, followed);
+            }
+            return;
+        }
         if (!followRepository.existsByFollowerIdAndFollowedId(followerId, followedId)) {
+            if (followRequestRepository != null) {
+                followRequestRepository.deleteByRequesterIdAndTargetId(followerId, followedId);
+            }
             followRepository.save(new UserFollow(followerId, followedId));
             notificationService.notifyUserFollowed(follower, followed);
         }
@@ -57,6 +84,9 @@ public class UserFollowService {
 
     public void unfollow(String followerId, String followedId) {
         followRepository.deleteByFollowerIdAndFollowedId(followerId, followedId);
+        if (followRequestRepository != null) {
+            followRequestRepository.deleteByRequesterIdAndTargetId(followerId, followedId);
+        }
     }
 
     public List<FollowUserResponse> following(String userId) {
@@ -104,6 +134,11 @@ public class UserFollowService {
 
     public boolean isFollowing(String followerId, String followedId) {
         return followRepository.existsByFollowerIdAndFollowedId(followerId, followedId);
+    }
+
+    public boolean hasPendingRequest(String requesterId, String targetId) {
+        return followRequestRepository != null
+                && followRequestRepository.existsByRequesterIdAndTargetId(requesterId, targetId);
     }
 
     private FollowUserResponse toResponse(br.com.unilink.backend.model.User user, boolean following) {

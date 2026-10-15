@@ -1,17 +1,10 @@
 import {
-  Bookmark, BookOpen, BriefcaseBusiness, Calendar, ChevronDown, Clock,
+  Bookmark, BookOpen, BriefcaseBusiness, Calendar, ChevronDown,
   Compass, Dumbbell, HeartPulse, Home, MapPin, Palette, PartyPopper,
   Plus, Search, School, Settings, SlidersHorizontal, Sparkles, Users,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-
-const filters = [
-  { label: 'Faculdade', value: 'Todas', icon: School },
-  { label: 'Campus', value: 'Todos', icon: MapPin },
-  { label: 'Curso', value: 'Todos', icon: BookOpen },
-  { label: 'Período', value: 'Todos', icon: Clock },
-  { label: 'Disciplinas', value: 'Todas', icon: Users },
-];
 
 const eventCategories = [
   { name: 'Todas', icon: Calendar },
@@ -23,6 +16,79 @@ const eventCategories = [
   { name: 'Festa', icon: PartyPopper },
   { name: 'Lazer', icon: Sparkles },
 ];
+
+function AcademicFilterSelect({ label, value, options, placeholder, icon: Icon, disabled = false, loading = false, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const selectRef = useRef(null);
+  const allOptions = [{ value: '', label: placeholder }, ...options];
+  const selectedOption = allOptions.find((option) => option.value === value);
+  const visibleOptions = allOptions
+    .filter((option) => option.label.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')));
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleOutsidePointerDown = (event) => {
+      if (!selectRef.current?.contains(event.target)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('pointerdown', handleOutsidePointerDown);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown);
+  }, [open]);
+
+  return (
+    <div ref={selectRef} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => { setOpen((current) => !current); setQuery(''); }}
+        className="flex w-full items-center justify-between rounded-2xl p-2.5 text-left transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <Icon className="h-4 w-4 shrink-0 text-slate-500" />
+          <span className="min-w-0">
+            <span className="block text-xs font-semibold text-slate-700">{label}</span>
+            <span className="block truncate text-[11px] text-slate-400">{loading ? 'Carregando...' : selectedOption?.label || placeholder}</span>
+          </span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 -rotate-90 text-slate-400 transition ${open ? 'rotate-0' : ''}`} />
+      </button>
+      {open && !disabled && (
+        <div role="listbox" className="absolute left-0 top-full z-40 mt-1 w-full min-w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+          <label className="relative block p-1">
+            <span className="sr-only">Pesquisar {label.toLocaleLowerCase('pt-BR')}</span>
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Pesquisar..."
+              className="h-9 w-full rounded-lg bg-slate-50 pl-9 pr-2 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-amber-100"
+            />
+          </label>
+          <div className="max-h-28 overflow-y-auto">
+            {visibleOptions.length ? visibleOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={value === option.value}
+                onClick={() => { onChange(option.value); setOpen(false); setQuery(''); }}
+                className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition ${value === option.value ? 'bg-amber-50 font-semibold text-amber-800' : 'text-slate-700 hover:bg-slate-50'}`}
+              >
+                {option.label}
+              </button>
+            )) : <p className="px-3 py-3 text-xs text-slate-500">Nenhuma opção encontrada.</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function FeedSidebar({
   activeItem = 'home',
@@ -36,6 +102,17 @@ export default function FeedSidebar({
   eventView = 'discover',
   onEventViewChange,
   onCreateCommunity,
+  filterInstitution = '',
+  filterCampus = '',
+  filterCourse = '',
+  institutions = [],
+  campuses = [],
+  courses = [],
+  campusesLoading = false,
+  coursesLoading = false,
+  onInstitutionFilterChange,
+  onCampusFilterChange,
+  onCourseFilterChange,
 }) {
   const isCommunities = activeItem === 'communities';
   const isEvents = activeItem === 'events';
@@ -119,15 +196,32 @@ export default function FeedSidebar({
             <SlidersHorizontal className="h-4 w-4 text-slate-500" />
           </div>
           <div className="space-y-1">
-            {filters.map(({ label, value, icon: Icon }) => (
-              <button key={label} type="button" className="flex w-full items-center justify-between rounded-2xl p-2.5 text-left transition-all hover:bg-slate-50">
-                <span className="flex items-center gap-3">
-                  <Icon className="h-4 w-4 text-slate-500" />
-                  <span><span className="block text-xs font-semibold text-slate-700">{label}</span><span className="block text-[11px] text-slate-400">{value}</span></span>
-                </span>
-                <ChevronDown className="h-4 w-4 -rotate-90 text-slate-400" />
-              </button>
-            ))}
+            <AcademicFilterSelect
+              label="Faculdade"
+              value={filterInstitution}
+              options={institutions.map((item) => ({ value: item.name, label: item.name }))}
+              placeholder="Todas"
+              icon={School}
+              onChange={onInstitutionFilterChange}
+            />
+            <AcademicFilterSelect
+              label="Campus"
+              value={filterCampus}
+              options={campuses.map((item) => ({ value: item, label: item }))}
+              placeholder="Todos"
+              icon={MapPin}
+              loading={campusesLoading}
+              onChange={onCampusFilterChange}
+            />
+            <AcademicFilterSelect
+              label="Curso"
+              value={filterCourse}
+              options={courses.map((item) => ({ value: item, label: item }))}
+              placeholder="Todos"
+              icon={BookOpen}
+              loading={coursesLoading}
+              onChange={onCourseFilterChange}
+            />
           </div>
         </section>
       )}

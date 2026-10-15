@@ -12,4 +12,6 @@ public interface PostRepository extends MongoRepository<Post, String> {
     boolean existsByAuthorIdAndContentAndCommunityName(String authorId, String content, String communityName);
 
     List<Post> findAllByAuthorId(String authorId);
+
+    void deleteByAuthorId(String authorId);
 }

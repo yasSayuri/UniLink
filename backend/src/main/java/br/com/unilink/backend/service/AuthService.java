@@ -83,7 +83,8 @@ public class AuthService {
                 user.getAvatarPositionX(),
                 user.getAvatarPositionY(),
                 user.getHeaderPositionX(),
-                user.getHeaderPositionY());
+                user.getHeaderPositionY(),
+                user.isPrivateAccount());
         return new AuthResponse(jwtService.generateToken(user), "Bearer", userResponse);
     }
 }

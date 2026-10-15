@@ -213,8 +213,4 @@ public class CommunityCatalogService {
     private int normalizePosition(Integer position) {
         return position == null ? 50 : Math.max(0, Math.min(100, position));
     }
-
-    private int normalizePosition(Integer position) {
-        return position == null ? 50 : Math.max(0, Math.min(100, position));
-    }
 }

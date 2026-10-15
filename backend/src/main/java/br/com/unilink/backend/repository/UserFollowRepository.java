@@ -10,6 +10,10 @@ public interface UserFollowRepository extends MongoRepository<UserFollow, String
 
     void deleteByFollowerIdAndFollowedId(String followerId, String followedId);
 
+    void deleteByFollowerId(String followerId);
+
+    void deleteByFollowedId(String followedId);
+
     List<UserFollow> findAllByFollowerId(String followerId);
 
     List<UserFollow> findAllByFollowedId(String followedId);

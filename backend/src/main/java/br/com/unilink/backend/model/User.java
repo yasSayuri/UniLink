@@ -1,6 +1,8 @@
 package br.com.unilink.backend.model;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -45,6 +47,10 @@ public class User {
     private Integer headerPositionY;
 
     private boolean demoAccount;
+
+    private boolean privateAccount;
+
+    private List<String> blockedWords = new ArrayList<>();
 
     private Instant publicationBlockedUntil;
 
@@ -120,6 +126,35 @@ public class User {
 
     public boolean isDemoAccount() {
         return demoAccount;
+    }
+
+    public boolean isPrivateAccount() {
+        return privateAccount;
+    }
+
+    public List<String> getBlockedWords() {
+        return blockedWords == null ? List.of() : blockedWords;
+    }
+
+    public void setPrivateAccount(boolean privateAccount) {
+        this.privateAccount = privateAccount;
+    }
+
+    public void changeEmail(String email) {
+        this.email = email;
+    }
+
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public void addBlockedWord(String word) {
+        if (blockedWords == null) blockedWords = new ArrayList<>();
+        if (!blockedWords.contains(word)) blockedWords.add(word);
+    }
+
+    public void removeBlockedWord(String word) {
+        if (blockedWords != null) blockedWords.remove(word);
     }
 
     public Instant getPublicationBlockedUntil() {

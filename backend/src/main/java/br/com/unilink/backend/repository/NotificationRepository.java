@@ -7,4 +7,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 public interface NotificationRepository extends MongoRepository<Notification, String> {
 
     List<Notification> findAllByUserIdOrderByCreatedAtDesc(String userId);
+
+    void deleteByUserId(String userId);
 }

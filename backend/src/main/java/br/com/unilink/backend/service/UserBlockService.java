@@ -3,6 +3,7 @@ package br.com.unilink.backend.service;
 import br.com.unilink.backend.model.UserBlock;
 import br.com.unilink.backend.repository.UserBlockRepository;
 import br.com.unilink.backend.repository.UserFollowRepository;
+import br.com.unilink.backend.repository.UserFollowRequestRepository;
 import br.com.unilink.backend.repository.UserRepository;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
@@ -15,14 +16,25 @@ public class UserBlockService {
     private final UserBlockRepository blockRepository;
     private final UserRepository userRepository;
     private final UserFollowRepository followRepository;
+    private final UserFollowRequestRepository followRequestRepository;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public UserBlockService(
+            UserBlockRepository blockRepository,
+            UserRepository userRepository,
+            UserFollowRepository followRepository,
+            UserFollowRequestRepository followRequestRepository) {
+        this.blockRepository = blockRepository;
+        this.userRepository = userRepository;
+        this.followRepository = followRepository;
+        this.followRequestRepository = followRequestRepository;
+    }
 
     public UserBlockService(
             UserBlockRepository blockRepository,
             UserRepository userRepository,
             UserFollowRepository followRepository) {
-        this.blockRepository = blockRepository;
-        this.userRepository = userRepository;
-        this.followRepository = followRepository;
+        this(blockRepository, userRepository, followRepository, null);
     }
 
     public void block(String blockerId, String blockedId) {
@@ -41,6 +53,10 @@ public class UserBlockService {
         }
         followRepository.deleteByFollowerIdAndFollowedId(blockerId, blockedId);
         followRepository.deleteByFollowerIdAndFollowedId(blockedId, blockerId);
+        if (followRequestRepository != null) {
+            followRequestRepository.deleteByRequesterIdAndTargetId(blockerId, blockedId);
+            followRequestRepository.deleteByRequesterIdAndTargetId(blockedId, blockerId);
+        }
     }
 
     public void unblock(String blockerId, String blockedId) {

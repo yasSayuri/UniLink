@@ -113,21 +113,36 @@ public class AcademicCatalogService {
         if (isUtfpr(institutionName, institutionDomain)) {
             return UTFPR_CAMPUSES;
         }
-        return userRepository.findAll().stream()
+        TreeSet<String> campusOptions = new TreeSet<>();
+        if (institutionName == null || institutionName.isBlank()) {
+            campusOptions.addAll(UTFPR_CAMPUSES);
+        }
+        campusOptions.addAll(userRepository.findAll().stream()
                 .filter(user -> sameInstitution(user, institutionName, institutionDomain))
                 .map(User::getCampus)
                 .filter(value -> value != null && !value.isBlank())
-                .collect(java.util.stream.Collectors.toCollection(TreeSet::new))
-                .stream()
-                .toList();
+                .toList());
+        return campusOptions.stream().toList();
     }
 
     public List<String> courses(String institutionName, String institutionDomain, String campus) {
+        if ((institutionName == null || institutionName.isBlank())
+                && (institutionDomain == null || institutionDomain.isBlank())) {
+            return UTFPR_COURSES_BY_CAMPUS.values().stream()
+                    .flatMap(List::stream)
+                    .distinct()
+                    .sorted()
+                    .toList();
+        }
         if (isUtfpr(institutionName, institutionDomain)) {
-            if (campus == null || campus.isBlank()) {
-                return List.of();
+            if (campus != null && !campus.isBlank()) {
+                return UTFPR_COURSES_BY_CAMPUS.getOrDefault(normalizeCampus(campus), List.of());
             }
-            return UTFPR_COURSES_BY_CAMPUS.getOrDefault(normalizeCampus(campus), List.of());
+            return UTFPR_COURSES_BY_CAMPUS.values().stream()
+                    .flatMap(List::stream)
+                    .distinct()
+                    .sorted()
+                    .toList();
         }
         return List.of();
     }
@@ -137,6 +152,10 @@ public class AcademicCatalogService {
     }
 
     private boolean sameInstitution(User user, String institutionName, String institutionDomain) {
+        if ((institutionName == null || institutionName.isBlank())
+                && (institutionDomain == null || institutionDomain.isBlank())) {
+            return true;
+        }
         return equalsIgnoreCase(user.getInstitutionDomain(), institutionDomain)
                 || equalsIgnoreCase(user.getInstitutionName(), institutionName);
     }

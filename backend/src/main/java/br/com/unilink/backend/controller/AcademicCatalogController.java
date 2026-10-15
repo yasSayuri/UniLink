@@ -26,14 +26,14 @@ public class AcademicCatalogController {
 
     @GetMapping("/campuses")
     public List<String> campuses(
-            @RequestParam String institutionName,
+            @RequestParam(required = false, defaultValue = "") String institutionName,
             @RequestParam(required = false) String institutionDomain) {
         return catalogService.campuses(institutionName, institutionDomain);
     }
 
     @GetMapping("/courses")
     public List<String> courses(
-            @RequestParam String institutionName,
+            @RequestParam(required = false, defaultValue = "") String institutionName,
             @RequestParam(required = false) String institutionDomain,
             @RequestParam(required = false) String campus) {
         return catalogService.courses(institutionName, institutionDomain, campus);

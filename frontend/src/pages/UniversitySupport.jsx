@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, BookOpen, CalendarDays, CarFront,
   CircleHelp, GraduationCap, House, Search, Send, ShoppingBag, User, Utensils,
@@ -8,6 +8,7 @@ import FeedMobileNav from '../components/feed/FeedMobileNav';
 import FeedSidebar from '../components/feed/FeedSidebar';
 import PostCard from '../components/feed/PostCard';
 import { getPostsByHashtag } from '../utils/authApi';
+import useAcademicFilters from '../hooks/useAcademicFilters';
 
 const resources = [
   { title: 'Moradia', hashtag: 'moradia', description: 'Encontre apartamentos, repúblicas e opções próximas ao campus.', action: 'Ver anúncios', icon: House, keywords: 'aluguel república apartamento' },
@@ -18,12 +19,6 @@ const resources = [
   { title: 'Feriados', hashtag: 'feriados', description: 'Consulte feriados, pontos facultativos e recessos acadêmicos.', action: 'Ver calendário acadêmico', icon: CalendarDays, keywords: 'datas calendário recesso' },
   { title: 'Disciplinas', hashtag: 'disciplinas', description: 'Encontre ementas, pré-requisitos e dicas de quem já cursou.', action: 'Ver disciplinas', icon: GraduationCap, keywords: 'matérias aulas ementa' },
   { title: 'Professores', hashtag: 'professores', description: 'Consulte horários de atendimento e informações dos professores.', action: 'Ver professores', icon: User, keywords: 'docentes atendimento' },
-];
-
-const notices = [
-  { title: 'Manutenção no RU', description: 'O RU central estará fechado neste sábado para manutenção.', time: 'Há 2h', icon: Utensils },
-  { title: 'Recesso acadêmico', description: 'Consulte o calendário do campus para acompanhar datas e recessos.', time: 'Há 1 dia', icon: CalendarDays },
-  { title: 'Prova de segunda chamada', description: 'Confira as orientações e prazos no sistema acadêmico.', time: 'Há 2 dias', icon: BookOpen },
 ];
 
 export default function UniversitySupport() {
@@ -43,8 +38,36 @@ export default function UniversitySupport() {
   const [selectedResource, setSelectedResource] = useState(null);
   const [serviceSearch, setServiceSearch] = useState('');
   const [supportPosts, setSupportPosts] = useState([]);
+  const [supportNews, setSupportNews] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
   const [postsError, setPostsError] = useState('');
+  const {
+    institutions, campuses, courses, filterInstitution, filterCampus, filterCourse,
+    campusesLoading, coursesLoading, handleInstitutionChange, handleCampusChange,
+    setFilterCourse, matchesFilters,
+  } = useAcademicFilters(setPostsError);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all(resources.map(async (resource) => ({
+      ...resource,
+      postCount: (await getPostsByHashtag(resource.hashtag)).length,
+    })))
+      .then((items) => {
+        if (active) {
+          setSupportNews(items
+            .filter((item) => item.postCount > 0)
+            .sort((first, second) => second.postCount - first.postCount)
+            .slice(0, 3));
+        }
+      })
+      .catch((error) => {
+        if (active) setPostsError(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const dismissSupportIntro = () => {
     try {
@@ -89,13 +112,27 @@ export default function UniversitySupport() {
     ) && `${post.content} ${post.authorName} ${post.authorUsername} ${post.hashtags?.join(' ')}`
       .toLocaleLowerCase('pt-BR')
       .includes(serviceSearch.toLocaleLowerCase('pt-BR')))
+    .filter(matchesFilters)
     : [];
 
   return (
     <div className="large-screen-dashboard min-h-screen bg-[#F4F5F7] pb-24 font-sans text-slate-700 lg:pb-10">
       <FeedHeader />
       <div className="mx-auto mt-6 grid max-w-7xl grid-cols-1 gap-6 px-4 lg:grid-cols-12">
-        <FeedSidebar activeItem="support" />
+        <FeedSidebar
+          activeItem="support"
+          filterInstitution={filterInstitution}
+          filterCampus={filterCampus}
+          filterCourse={filterCourse}
+          institutions={institutions}
+          campuses={campuses}
+          courses={courses}
+          campusesLoading={campusesLoading}
+          coursesLoading={coursesLoading}
+          onInstitutionFilterChange={handleInstitutionChange}
+          onCampusFilterChange={handleCampusChange}
+          onCourseFilterChange={setFilterCourse}
+        />
         <main className="min-w-0 space-y-5 lg:col-span-6">
           <section>
             {selectedResource ? (
@@ -150,7 +187,26 @@ export default function UniversitySupport() {
           </section>}
         </main>
         <aside className="hidden space-y-6 lg:col-span-3 lg:block">
-          <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm"><div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-bold text-slate-800">Avisos úteis</h2><button type="button" className="inline-flex items-center gap-1 text-xs text-amber-600">Ver todos<ArrowRight className="h-3 w-3" /></button></div><div className="space-y-4">{notices.map(({ title, description, time, icon: Icon }) => <article key={title} className="flex gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] text-amber-800"><Icon className="h-4 w-4" /></span><div><h3 className="text-xs font-bold text-slate-800">{title}</h3><p className="mt-1 text-xs text-slate-500">{description}</p><span className="text-[11px] text-slate-400">{time}</span></div></article>)}</div></section>
+          <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-800">Novidades</h2>
+            </div>
+            {supportNews.length ? (
+              <div className="space-y-3">
+                {supportNews.map(({ title, hashtag, postCount, icon: Icon }) => (
+                  <button key={hashtag} type="button" onClick={() => openResource({ title, hashtag })} className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-slate-50">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] text-amber-800"><Icon className="h-4 w-4" /></span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-xs font-bold text-slate-800">{title}</span>
+                      <span className="mt-1 block text-xs text-slate-500">{title} teve {postCount} {postCount === 1 ? 'nova postagem' : 'novas postagens'}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="py-2 text-xs leading-relaxed text-slate-500">Ainda não há novidades nos serviços de apoio.</p>
+            )}
+          </section>
         </aside>
       </div>
       <FeedMobileNav activeItem="support" />

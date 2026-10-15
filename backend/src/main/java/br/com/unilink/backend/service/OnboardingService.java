@@ -41,6 +41,7 @@ public class OnboardingService {
     public PublicUserResponse getPublicUser(String profileId, String viewerId) {
         User user = userRepository.findById(profileId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+        boolean following = !profileId.equals(viewerId) && userFollowService.isFollowing(viewerId, profileId);
         return new PublicUserResponse(
                 user.getId(),
                 user.getUsername(),
@@ -52,7 +53,7 @@ public class OnboardingService {
                 user.isOnboardingCompleted(),
                 userFollowService.followersCount(profileId),
                 userFollowService.followingCount(profileId),
-                !profileId.equals(viewerId) && userFollowService.isFollowing(viewerId, profileId),
+                following,
                 userBlockService != null && userBlockService.isBlocked(viewerId, profileId),
                 userBlockService != null && userBlockService.isBlocked(profileId, viewerId),
                 user.getAvatarUrl(),
@@ -60,7 +61,10 @@ public class OnboardingService {
                 user.getAvatarPositionX(),
                 user.getAvatarPositionY(),
                 user.getHeaderPositionX(),
-                user.getHeaderPositionY());
+                user.getHeaderPositionY(),
+                user.isPrivateAccount(),
+                !following && !profileId.equals(viewerId)
+                        && userFollowService.hasPendingRequest(viewerId, profileId));
     }
 
     public UserResponse complete(String userId, OnboardingRequest request) {
@@ -118,6 +122,7 @@ public class OnboardingService {
                 user.getAvatarPositionX(),
                 user.getAvatarPositionY(),
                 user.getHeaderPositionX(),
-                user.getHeaderPositionY());
+                user.getHeaderPositionY(),
+                user.isPrivateAccount());
     }
 }

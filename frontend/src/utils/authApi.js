@@ -76,6 +76,50 @@ export function getCurrentUser() {
   return apiRequest('/api/v1/users/me');
 }
 
+export function getSettings() {
+  return apiRequest('/api/v1/users/me/settings');
+}
+
+export function changeEmail(currentEmail, newEmail, confirmation) {
+  return apiRequest('/api/v1/users/me/settings/email', {
+    method: 'PATCH',
+    body: JSON.stringify({ currentEmail, newEmail, confirmation }),
+  });
+}
+
+export function changePassword(newPassword, confirmation) {
+  return apiRequest('/api/v1/users/me/settings/password', {
+    method: 'PATCH',
+    body: JSON.stringify({ newPassword, confirmation }),
+  });
+}
+
+export function updatePreferences(privateAccount) {
+  return apiRequest('/api/v1/users/me/settings/preferences', {
+    method: 'PATCH',
+    body: JSON.stringify({ privateAccount }),
+  });
+}
+
+export function addBlockedWord(word) {
+  return apiRequest('/api/v1/users/me/settings/blocked-words', {
+    method: 'POST',
+    body: JSON.stringify({ word }),
+  });
+}
+
+export function removeBlockedWord(word) {
+  return apiRequest(`/api/v1/users/me/settings/blocked-words/${encodeURIComponent(word)}`, { method: 'DELETE' });
+}
+
+export function unblockBlockedPerson(userId) {
+  return apiRequest(`/api/v1/users/me/settings/blocked-people/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+}
+
+export function deleteAccount() {
+  return apiRequest('/api/v1/users/me/settings', { method: 'DELETE' });
+}
+
 export function getUserProfile(userId) {
   return apiRequest(`/api/v1/users/${encodeURIComponent(userId)}`);
 }
@@ -116,6 +160,18 @@ export function unfollowUser(userId) {
     });
 }
 
+export function getFollowRequests() {
+  return apiRequest('/api/v1/users/me/follow-requests');
+}
+
+export function acceptFollowRequest(requesterId) {
+  return apiRequest(`/api/v1/users/me/follow-requests/${encodeURIComponent(requesterId)}/accept`, { method: 'POST' });
+}
+
+export function rejectFollowRequest(requesterId) {
+  return apiRequest(`/api/v1/users/me/follow-requests/${encodeURIComponent(requesterId)}/reject`, { method: 'POST' });
+}
+
 export function blockUser(userId) {
   return apiRequest(`/api/v1/users/${encodeURIComponent(userId)}/block`, { method: 'POST' });
 }
@@ -140,7 +196,21 @@ export function getCommunityPosts() {
 }
 
 export function getNotifications() {
-  return apiRequest('/api/v1/notifications');
+  return apiRequest('/api/v1/notifications').then((notifications) => {
+    const seenFollowRequests = new Set();
+    const pendingRequesterIds = new Set(
+      notifications
+        .filter((notification) => notification.type === 'PRIVATE_FOLLOW_REQUEST')
+        .map((notification) => notification.actorId),
+    );
+    return notifications.filter((notification) => {
+      if (notification.type === 'USER_FOLLOWED' && pendingRequesterIds.has(notification.actorId)) return false;
+      if (notification.type !== 'PRIVATE_FOLLOW_REQUEST') return true;
+      if (seenFollowRequests.has(notification.actorId)) return false;
+      seenFollowRequests.add(notification.actorId);
+      return true;
+    });
+  });
 }
 
 export function markNotificationAsRead(notificationId) {
