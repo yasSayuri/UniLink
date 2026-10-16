@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, ChevronDown, LogOut, Search, UserPlus, X } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Search, Settings, User, UserPlus, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import UniLinkLogo from '../branding/UniLinkLogo';
 import {
@@ -259,15 +259,15 @@ export default function FeedHeader() {
             </button>
           )}
           {searchOpen && search.trim().length >= 2 && (
-            <div id="people-search-results" role="listbox" className="absolute left-0 right-0 top-full z-[60] mt-2 max-h-96 overflow-y-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
+            <div id="people-search-results" role="listbox" className="absolute left-0 right-0 top-full z-[60] mt-2 max-h-96 overflow-y-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl max-sm:-left-14 max-sm:-right-14 max-sm:p-3">
               {searchLoading ? (
                 <p className="p-4 text-center text-xs text-slate-500">Buscando pessoas...</p>
               ) : searchError ? (
                 <p role="alert" className="p-3 text-xs text-red-600">{searchError}</p>
               ) : searchResults.length ? searchResults.map((person) => (
-                <div key={person.id} role="option" aria-selected="false" className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50">
+                <div key={person.id} role="option" aria-selected="false" className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50 max-sm:min-h-[4.5rem] max-sm:px-2.5 max-sm:py-3">
                   <Link to={`/perfil/${person.id}`} onClick={() => setSearchOpen(false)} className="flex min-w-0 flex-1 items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3C4] text-sm font-bold text-slate-800">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#FFF3C4] text-sm font-bold text-slate-800 max-sm:h-11 max-sm:w-11">
                       {person.avatarUrl ? <img src={person.avatarUrl} alt="" className="h-full w-full object-cover" /> : person.name.charAt(0).toLocaleUpperCase('pt-BR')}
                     </span>
                     <span className="min-w-0 flex-1">
@@ -305,7 +305,7 @@ export default function FeedHeader() {
             )}
           </button>
           {notificationOpen && (
-            <section role="dialog" aria-label="Notificações" className="absolute right-0 top-full z-[80] mt-2 w-[360px] max-w-[92vw] overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
+            <section role="dialog" aria-label="Notificações" className="fixed left-2 right-2 top-[3.25rem] z-[80] w-auto max-w-none overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px] sm:max-w-[92vw]">
               <header className="border-b border-slate-100 px-4 py-3">
                 <h2 className="text-base font-extrabold text-slate-800">Notificações</h2>
               </header>
@@ -363,6 +363,15 @@ export default function FeedHeader() {
 
           {profileMenuOpen && (
             <div role="menu" aria-label="Menu do perfil" className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-slate-100 bg-white p-1.5 shadow-lg shadow-slate-900/10">
+              <Link to="/perfil" role="menuitem" onClick={() => setProfileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:hidden">
+                <User className="h-4 w-4 text-slate-500" />
+                Ver perfil
+              </Link>
+              <Link to="/configuracoes" role="menuitem" onClick={() => setProfileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:hidden">
+                <Settings className="h-4 w-4 text-slate-500" />
+                Configurações
+              </Link>
+              <div className="my-1 border-t border-slate-100 sm:hidden" />
               <button type="button" role="menuitem" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50">
                 <LogOut className="h-4 w-4 text-red-600" />
                 Sair

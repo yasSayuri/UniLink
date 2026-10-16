@@ -162,9 +162,9 @@ export default function UniversitySupport() {
           </section>
           {!selectedResource && <section aria-label="Categorias de apoio" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {resources.map(({ title, hashtag, description, action, icon: Icon }) => (
-              <article key={title} className="flex min-h-36 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-amber-300 hover:shadow-md">
+              <article key={title} className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-amber-300 hover:shadow-md">
                 <div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF3C4] text-amber-800"><Icon className="h-5 w-5" /></span><div><h2 className="text-sm font-bold text-slate-800">{title}</h2><p className="mt-1.5 text-xs leading-relaxed text-slate-500">{description}</p></div></div>
-                <button type="button" onClick={() => openResource({ title, hashtag })} className="mt-auto flex items-center justify-between gap-2 pt-4 text-left text-xs font-semibold text-amber-700"><span>{action}</span><ArrowRight className="h-4 w-4" /></button>
+                <button type="button" onClick={() => openResource({ title, hashtag })} className="mt-3 flex items-center justify-between gap-2 text-left text-xs font-semibold text-[#B77900] transition hover:text-[#8F5F00]"><span>{action}</span><ArrowRight className="h-4 w-4" /></button>
               </article>
             ))}
           </section>}

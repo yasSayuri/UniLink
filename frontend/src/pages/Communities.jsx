@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft, ArrowRight, Camera, Check, Flag, Globe2, Lock, LogOut, MoreVertical, Plus, UserMinus, Users, X,
+  ArrowLeft, ArrowRight, Camera, Check, Flag, Globe2, Lock, LogOut, MoreVertical, Plus, Search, UserMinus, Users, X,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import FeedHeader from '../components/feed/FeedHeader';
@@ -171,6 +171,9 @@ export default function Communities() {
       .filter((community) => community.member)
       .map((community) => community.name),
   );
+  const memberCommunities = communities
+    .filter((community) => community.member)
+    .filter((community) => community.name.toLocaleLowerCase('pt-BR').includes(communitySearch.toLocaleLowerCase('pt-BR')));
   const visiblePosts = posts.filter((post) => {
     if (!post.communityName) return false;
     if (selectedCommunity !== 'all') {
@@ -185,6 +188,7 @@ export default function Communities() {
   const isInsideSpecificGroup = Boolean(selectedCommunityDetails);
   const mobileTabs = [
     { id: 'feed', label: 'Publicações' },
+    { id: 'groups', label: 'Seus grupos' },
     { id: 'discover', label: 'Descobrir' },
   ];
   const groupCategories = ['Estudo', 'Lazer', 'Tecnologia', 'Carreira', 'Esportes', 'Arte', 'Música', 'Voluntariado'];
@@ -482,9 +486,9 @@ export default function Communities() {
             </section>
           )}
           {!isInsideSpecificGroup && (
-            <nav aria-label="Navegação de comunidades" className="grid grid-cols-2 border-b border-slate-200">
+            <nav aria-label="Navegação de comunidades" className="grid grid-cols-2 border-b border-slate-200 max-sm:grid-cols-3">
               {mobileTabs.map(({ id, label }) => (
-                <button key={id} type="button" onClick={() => setMobileTab(id)} aria-current={mobileTab === id ? 'page' : undefined} className={`min-h-11 border-b-2 px-1 text-[11px] font-semibold ${mobileTab === id ? 'border-amber-400 text-slate-900' : 'border-transparent text-slate-500'}`}>{label}</button>
+                <button key={id} type="button" onClick={() => setMobileTab(id)} aria-current={mobileTab === id ? 'page' : undefined} className={`${id === 'groups' ? 'sm:hidden' : ''} min-h-11 border-b-2 px-1 text-[11px] font-semibold ${mobileTab === id ? 'border-amber-400 text-slate-900' : 'border-transparent text-slate-500'}`}>{label}</button>
               ))}
             </nav>
           )}
@@ -556,6 +560,29 @@ export default function Communities() {
               )) : (
                 <p className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Nenhum grupo disponível.</p>
               )}
+            </section>
+          )}
+
+          {!isInsideSpecificGroup && mobileTab === 'groups' && (
+            <section className="space-y-4 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm" aria-label="Seus grupos">
+              <label className="relative block">
+                <span className="sr-only">Buscar grupos</span>
+                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <input type="search" value={communitySearch} onChange={(event) => setCommunitySearch(event.target.value)} placeholder="Buscar grupos" className="w-full rounded-full bg-slate-100 py-2 pl-9 pr-3 text-xs text-slate-700 outline-none transition focus:ring-2 focus:ring-amber-200" />
+              </label>
+              <nav aria-label="Grupos em que você participa" className="space-y-1">
+                {memberCommunities.map((community) => (
+                  <button key={community.id} type="button" onClick={() => { setSelectedCommunity(community.name); setMobileTab('feed'); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition ${selectedCommunity === community.name ? 'bg-slate-100 text-slate-800' : 'text-slate-600 hover:bg-slate-50'}`}>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600"><Users className="h-4 w-4" /></span><span className="truncate">{community.name}</span>
+                  </button>
+                ))}
+                {!memberCommunities.length && (
+                  <p className="px-3 py-2.5 text-xs text-slate-500">Você ainda não está em nenhum grupo.</p>
+                )}
+              </nav>
+              <button type="button" onClick={openCreateGroup} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC72C] px-3 py-2.5 text-xs font-bold text-slate-900 transition hover:bg-amber-400">
+                <Plus className="h-4 w-4" />Criar novo grupo
+              </button>
             </section>
           )}
         </main>

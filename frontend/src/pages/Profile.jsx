@@ -561,7 +561,7 @@ export default function Profile() {
                 </label>
                 <label className="block text-sm font-semibold text-slate-700">
               Username
-              <div className="mt-1.5 flex items-center rounded-xl border border-slate-200 px-3.5 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-100">
+              <div className="profile-username-field mt-1.5 flex items-center rounded-xl border border-slate-200 px-3.5 focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-100">
                   <span className="text-sm text-slate-400">@</span>
                   <input required minLength={3} maxLength={30} pattern="[a-zA-Z0-9._]+" value={draft.username} onChange={(event) => setDraft((current) => ({ ...current, username: event.target.value }))} className="w-full border-0 px-2 py-3 text-sm outline-none" />
                 </div>

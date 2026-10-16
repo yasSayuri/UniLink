@@ -212,6 +212,10 @@ html.dark .focus\:bg-slate-100:focus {
 	color: #ffffff !important;
 }
 
+.dark .profile-username-field {
+	background-color: var(--unilink-dark-surface);
+}
+
 .dark .ring-slate-100,
 .dark .ring-slate-200 {
 	--tw-ring-color: var(--unilink-dark-border);
