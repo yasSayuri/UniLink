@@ -12,7 +12,7 @@
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/status-em%20desenvolvimento-F7C948?style=for-the-badge" alt="Status: Finalizado">
+    <img src="https://img.shields.io/badge/status-finalizado-2EA44F?style=for-the-badge" alt="Status: finalizado">
     <img src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21">
     <img src="https://img.shields.io/badge/Spring%20Boot-3.5.6-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 3.5.6">
     <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=111827" alt="React 19">
