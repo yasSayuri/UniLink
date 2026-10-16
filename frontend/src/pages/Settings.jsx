@@ -9,6 +9,7 @@ import {
   removeBlockedWord, unblockBlockedPerson, updatePreferences,
 } from '../utils/authApi';
 import { saveOnboarding } from '../utils/academicCatalogApi';
+import { applyDarkMode, isDarkModeEnabled } from '../utils/theme';
 
 function savedUser() {
   try { return JSON.parse(localStorage.getItem('unilink.user') || 'null'); } catch { return null; }
@@ -47,12 +48,14 @@ export default function Settings() {
   const [form, setForm] = useState({});
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => isDarkModeEnabled(savedUser()?.id));
 
   const load = () => Promise.all([getCurrentUser(), getSettings()])
     .then(([currentUser, currentSettings]) => {
       setUser(currentUser);
       setSettings(currentSettings);
+      setDarkMode(currentSettings.darkMode);
+      applyDarkMode(currentSettings.darkMode, currentUser.id);
       localStorage.setItem('unilink.user', JSON.stringify(currentUser));
     });
 
@@ -93,6 +96,21 @@ export default function Settings() {
       setUser((current) => ({ ...current, privateAccount }));
       localStorage.setItem('unilink.user', JSON.stringify({ ...user, privateAccount }));
     } catch (requestError) { setError(requestError.message); } finally { setSaving(false); }
+  };
+
+  const toggleDarkMode = async (enabled) => {
+    setSaving(true);
+    setError('');
+    try {
+      const result = await updatePreferences(settings.privateAccount, enabled);
+      setSettings(result);
+      setDarkMode(result.darkMode);
+      applyDarkMode(result.darkMode, user?.id);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const unblock = async (person) => {
@@ -140,7 +158,7 @@ export default function Settings() {
               <button type="button" onClick={() => setExpanded((current) => !current)} className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-slate-50 sm:px-6"><span className="flex items-center gap-3"><Shield className="h-5 w-5 text-amber-700" /><span><strong className="block text-sm text-slate-800">Preferências e privacidade</strong><span className="text-xs text-slate-500">Controle a visibilidade e o conteúdo que aparece para você</span></span></span>{expanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}</button>
               {expanded && <div className="space-y-5 bg-slate-50 px-5 py-5 sm:px-6">
                 <div className="flex items-center justify-between gap-4"><div><strong className="block text-sm text-slate-800">Conta privada</strong><span className="text-xs text-slate-500">Apenas seus seguidores poderão ver suas publicações e comentários.</span></div><Toggle checked={settings.privateAccount} onChange={togglePrivate} label="Conta privada" /></div>
-                <div className="flex items-center justify-between gap-4"><div><strong className="block text-sm text-slate-800">Modo escuro</strong><span className="text-xs text-slate-500">Ative a aparência escura quando quiser.</span></div><Toggle checked={darkMode} onChange={setDarkMode} label="Modo escuro" /></div>
+                <div className="flex items-center justify-between gap-4"><div><strong className="block text-sm text-slate-800">Modo escuro</strong><span className="text-xs text-slate-500">Ative a aparência escura quando quiser.</span></div><Toggle checked={darkMode} onChange={toggleDarkMode} label="Modo escuro" /></div>
                 <div><div className="flex items-center justify-between"><strong className="text-sm text-slate-800">Pessoas bloqueadas</strong><span className="text-xs text-slate-500">{settings.blockedPeople.length}</span></div>{settings.blockedPeople.length ? <div className="mt-3 space-y-2">{settings.blockedPeople.map((person) => <div key={person.id} className="flex items-center justify-between rounded-xl bg-white px-3 py-2"><span className="text-xs font-semibold text-slate-700">{person.name} <span className="font-normal text-slate-400">@{person.username}</span></span><button type="button" onClick={() => unblock(person)} className="text-xs font-bold text-amber-700 hover:underline">Desbloquear</button></div>)}</div> : <p className="mt-2 text-xs text-slate-500">Você não bloqueou ninguém.</p>}</div>
                 <div><div className="flex items-center justify-between"><strong className="text-sm text-slate-800">Palavras bloqueadas</strong><button type="button" onClick={() => { setForm({ word: '' }); setModal('word'); }} className="text-xs font-bold text-amber-700 hover:underline">Adicionar</button></div>{settings.blockedWords.length ? <div className="mt-3 flex flex-wrap gap-2">{settings.blockedWords.map((word) => <span key={word} className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs text-slate-700">#{word}<button type="button" onClick={() => removeWord(word)} aria-label={`Remover ${word}`} className="text-slate-400 hover:text-red-600">×</button></span>)}</div> : <p className="mt-2 text-xs text-slate-500">Nenhuma palavra bloqueada.</p>}</div>
               </div>}

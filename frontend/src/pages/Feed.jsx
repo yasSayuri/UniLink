@@ -283,7 +283,7 @@ export default function Feed() {
                     <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#FFF8E6] text-[#D9A000]"><Calendar className="h-4 w-4" /></span>
                     <div>
                       <h3 className="text-xs font-bold leading-tight text-slate-800">{event.title}</h3>
-                      <p className="mt-0.5 text-[10px] text-slate-400">{formatEventDate(event.date, event.time)}</p>
+                      <p className="event-date-time mt-0.5 text-[10px] text-slate-400">{formatEventDate(event.date, event.time)}</p>
                       <p className="text-[10px] text-slate-400">{event.location}</p>
                     </div>
                   </div>

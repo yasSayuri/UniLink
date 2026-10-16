@@ -123,6 +123,7 @@ public class OnboardingService {
                 user.getAvatarPositionY(),
                 user.getHeaderPositionX(),
                 user.getHeaderPositionY(),
-                user.isPrivateAccount());
+                user.isPrivateAccount(),
+                user.isDarkMode());
     }
 }

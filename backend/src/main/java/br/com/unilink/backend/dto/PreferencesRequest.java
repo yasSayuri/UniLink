@@ -1,4 +1,4 @@
 package br.com.unilink.backend.dto;
 
-public record PreferencesRequest(boolean privateAccount) {
+public record PreferencesRequest(Boolean privateAccount, Boolean darkMode) {
 }

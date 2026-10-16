@@ -1,7 +1,7 @@
 import {
   Bookmark, BookOpen, BriefcaseBusiness, Calendar, ChevronDown,
   Compass, Dumbbell, HeartPulse, Home, MapPin, Palette, PartyPopper,
-  Plus, Search, School, Settings, SlidersHorizontal, Sparkles, Users,
+  Plus, Search, School, Settings, SlidersHorizontal, Sparkles, User, Users,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -122,6 +122,7 @@ export default function FeedSidebar({
     { id: 'communities', label: 'Grupos', path: '/comunidades', icon: Users },
     { id: 'saved', label: 'Salvos', path: '/salvos', icon: Bookmark },
     { id: 'events', label: 'Eventos', path: '/eventos', icon: Calendar },
+    { id: 'profile', label: 'Perfil', path: '/perfil', icon: User },
     { id: 'settings', label: 'Configurações', path: '/configuracoes', icon: Settings },
   ];
 
@@ -163,7 +164,7 @@ export default function FeedSidebar({
               )}
             </nav>
           </div>
-          <button type="button" onClick={onCreateCommunity} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-50 px-3 py-2.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100">
+          <button type="button" onClick={onCreateCommunity} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#FFC72C] px-3 py-2.5 text-xs font-bold text-slate-900 transition hover:bg-amber-400">
             <Plus className="h-4 w-4" />Criar novo grupo
           </button>
         </section>

@@ -69,7 +69,7 @@ public class SettingsService {
         List<FollowRequestResponse> followRequests = followRequestService == null
                 ? List.of()
                 : followRequestService.pendingFor(userId);
-        return new SettingsResponse(user.isPrivateAccount(), blockedPeople, user.getBlockedWords(), followRequests);
+        return new SettingsResponse(user.isPrivateAccount(), user.isDarkMode(), blockedPeople, user.getBlockedWords(), followRequests);
     }
 
     public void changeEmail(String userId, String currentEmail, String newEmail, String confirmation) {
@@ -98,11 +98,16 @@ public class SettingsService {
         userRepository.save(user);
     }
 
-    public void updatePreferences(String userId, boolean privateAccount) {
+    public void updatePreferences(String userId, Boolean privateAccount, Boolean darkMode) {
         User user = findUser(userId);
-        user.setPrivateAccount(privateAccount);
+        if (privateAccount != null) {
+            user.setPrivateAccount(privateAccount);
+        }
+        if (darkMode != null) {
+            user.setDarkMode(darkMode);
+        }
         userRepository.save(user);
-        if (!privateAccount && followRequestService != null) {
+        if (Boolean.FALSE.equals(privateAccount) && followRequestService != null) {
             followRequestService.deleteIncomingFor(userId);
         }
     }

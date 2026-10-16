@@ -19,7 +19,8 @@ public record UserResponse(
         Integer avatarPositionY,
         Integer headerPositionX,
         Integer headerPositionY,
-        boolean privateAccount) {
+        boolean privateAccount,
+        boolean darkMode) {
 
     public UserResponse(
             String id, String username, String name, String email,
@@ -29,6 +30,6 @@ public record UserResponse(
             Integer avatarPositionY, Integer headerPositionX, Integer headerPositionY) {
         this(id, username, name, email, institutionName, institutionDomain, campus, course,
                 academicPeriod, onboardingCompleted, followersCount, followingCount, avatarUrl,
-                headerUrl, avatarPositionX, avatarPositionY, headerPositionX, headerPositionY, false);
+                headerUrl, avatarPositionX, avatarPositionY, headerPositionX, headerPositionY, false, false);
     }
 }

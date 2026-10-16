@@ -50,6 +50,8 @@ public class User {
 
     private boolean privateAccount;
 
+    private boolean darkMode;
+
     private List<String> blockedWords = new ArrayList<>();
 
     private Instant publicationBlockedUntil;
@@ -132,12 +134,20 @@ public class User {
         return privateAccount;
     }
 
+    public boolean isDarkMode() {
+        return darkMode;
+    }
+
     public List<String> getBlockedWords() {
         return blockedWords == null ? List.of() : blockedWords;
     }
 
     public void setPrivateAccount(boolean privateAccount) {
         this.privateAccount = privateAccount;
+    }
+
+    public void setDarkMode(boolean darkMode) {
+        this.darkMode = darkMode;
     }
 
     public void changeEmail(String email) {

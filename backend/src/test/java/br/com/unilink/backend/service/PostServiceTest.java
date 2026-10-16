@@ -51,13 +51,11 @@ class PostServiceTest {
     private PostService postService;
 
     @Test
-    void onlyReturnsPostsFromFollowedUsersAndPostsOwnedByViewer() {
+    void returnsPublicPostsAndAppliesPrivateVisibilityRules() {
         Post publicPost = post("another-user", "PUBLIC");
         Post privatePost = post("another-user", "PRIVATE");
         Post followerPost = post("another-user", "FOLLOWERS");
         Post ownPrivatePost = post("viewer", "PRIVATE");
-        when(followRepository.findAllByFollowerId("viewer"))
-                .thenReturn(List.of(new br.com.unilink.backend.model.UserFollow("viewer", "another-user")));
         when(followRepository.existsByFollowerIdAndFollowedId("viewer", "another-user")).thenReturn(true);
         when(postRepository.findAllByOrderByCreatedAtDesc())
                 .thenReturn(List.of(publicPost, privatePost, followerPost, ownPrivatePost));
@@ -70,12 +68,11 @@ class PostServiceTest {
     }
 
     @Test
-    void returnsNoPostsWhenViewerHasNoFollowRelationshipsOrOwnPosts() {
-        when(followRepository.findAllByFollowerId("viewer")).thenReturn(List.of());
+    void returnsPublicPostsWhenViewerHasNoFollowRelationships() {
         when(postRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(
                 post("another-user", "PUBLIC")));
 
-        assertEquals(List.of(), postService.list("viewer"));
+        assertEquals(1, postService.list("viewer").size());
     }
 
     @Test

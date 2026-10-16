@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
-  FilePlus2, Globe, LockKeyhole, Megaphone, UsersRound,
+  FilePlus2, Globe, LockKeyhole, UsersRound,
 } from 'lucide-react';
 
 const audiences = [
@@ -59,6 +59,11 @@ export default function PostComposer({
   const submit = async (event) => {
     event.preventDefault();
     if (!content.trim()) return;
+    if (communityMode && !fixedCommunityName && !community) {
+      setNotice('Escolha uma comunidade antes de publicar.');
+      setOpenMenu('community');
+      return;
+    }
     const mediaPayload = media.map((item) => ({
       fileName: item.fileName,
       contentType: item.contentType,
@@ -107,8 +112,6 @@ export default function PostComposer({
   };
 
   const removeMedia = (index) => setMedia((current) => current.filter((_, itemIndex) => itemIndex !== index));
-  const showAnnouncementNotice = () => setNotice('A criação de anúncios ainda não está disponível.');
-
   return (
     <>
       <form onSubmit={submit} className="space-y-4 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm lg:shrink-0">
@@ -146,7 +149,6 @@ export default function PostComposer({
           <div className="flex flex-wrap items-center gap-1 text-xs font-medium text-slate-600">
             <input ref={mediaInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" multiple hidden onChange={handleMediaSelection} />
             <button type="button" onClick={() => mediaInputRef.current?.click()} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-slate-50"><FilePlus2 className="h-4 w-4 text-amber-500" /><span>Mídia</span></button>
-            <button type="button" onClick={showAnnouncementNotice} className="flex items-center gap-2 rounded-xl p-2 transition hover:bg-slate-50"><Megaphone className="h-4 w-4 text-emerald-500" /><span>Anunciar</span></button>
             <div className="relative">
               <button type="button" aria-haspopup="listbox" aria-expanded={openMenu === 'audience'} onClick={() => setOpenMenu((open) => open === 'audience' ? null : 'audience')} className="flex items-center gap-1.5 rounded-xl p-2 text-slate-600 transition hover:bg-slate-50">
                 <AudienceIcon className="h-4 w-4" />{selectedAudience.label}
@@ -195,7 +197,7 @@ export default function PostComposer({
               </div>
             )}
           </div>
-          <button type="submit" disabled={publishing || !content.trim() || (communityMode && !fixedCommunityName && !community)} className="rounded-xl bg-[#FFC72C] px-5 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50">
+          <button type="submit" disabled={publishing || !content.trim()} className="rounded-xl bg-[#FFC72C] px-5 py-2.5 text-sm font-bold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50">
             {publishing ? 'Publicando...' : 'Publicar'}
           </button>
         </div>

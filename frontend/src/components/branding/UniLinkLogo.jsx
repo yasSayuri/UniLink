@@ -1,4 +1,5 @@
 import logoImage from '../../assets/unilink-logo.png';
+import lightLogoImage from '../../assets/UniLink_logo_Claro.png';
 
 export default function UniLinkLogo({ size = 'medium', className = '', showTextOnMobile = false }) {
   const sizes = {
@@ -16,13 +17,19 @@ export default function UniLinkLogo({ size = 'medium', className = '', showTextO
       <img
         src={logoImage}
         alt="UniLink Logo"
-        className={`${currentSize.image} w-auto object-contain rounded-2xl`}
+        className={`unilink-logo-default ${currentSize.image} w-auto object-contain rounded-2xl`}
+      />
+      <img
+        src={lightLogoImage}
+        alt=""
+        aria-hidden="true"
+        className={`unilink-logo-dark ${currentSize.image} w-auto object-contain rounded-2xl`}
       />
       <span
         translate="no"
         className={`notranslate ${currentSize.text} ${showTextOnMobile ? 'inline-flex' : 'hidden sm:inline-flex'} font-black tracking-tight items-center`}
       >
-        <span className="bg-gradient-to-b from-[#525B67] via-[#38414D] to-[#2B323B] bg-clip-text text-transparent">
+        <span className="logo-uni-text bg-gradient-to-b from-[#525B67] via-[#38414D] to-[#2B323B] bg-clip-text text-transparent">
           Uni
         </span>
         <span className="text-[#FFC72C]">Link</span>

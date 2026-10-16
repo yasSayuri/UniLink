@@ -48,7 +48,7 @@ public class SettingsController {
 
     @PatchMapping("/preferences")
     public SettingsResponse updatePreferences(Principal principal, @RequestBody PreferencesRequest request) {
-        settingsService.updatePreferences(principal.getName(), request.privateAccount());
+        settingsService.updatePreferences(principal.getName(), request.privateAccount(), request.darkMode());
         return settingsService.get(principal.getName());
     }
 

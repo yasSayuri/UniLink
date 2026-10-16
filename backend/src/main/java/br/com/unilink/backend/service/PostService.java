@@ -83,12 +83,8 @@ public class PostService {
     }
 
     public List<PostResponse> list(String viewerId) {
-        var followedIds = followRepository.findAllByFollowerId(viewerId).stream()
-                .map(br.com.unilink.backend.model.UserFollow::getFollowedId)
-                .collect(java.util.stream.Collectors.toSet());
         var visiblePosts = new ArrayList<>(postRepository.findAllByOrderByCreatedAtDesc().stream()
-                .filter(post -> Objects.equals(post.getAuthorId(), viewerId)
-                        || (followedIds.contains(post.getAuthorId()) && canViewPost(post, viewerId, true)))
+                .filter(post -> canViewPost(post, viewerId, true))
                 .filter(post -> isVisibleToViewer(post.getAuthorId(), viewerId))
                 .filter(post -> !containsBlockedWord(post, viewerId))
                 .toList());
@@ -141,8 +137,7 @@ public class PostService {
         return postRepository.findAllByOrderByCreatedAtDesc().stream()
                 .filter(post -> post.getCommunityName() != null
                         && (communityName == null || communityName.equals(post.getCommunityName()))
-                        && canViewCommunity(communities.get(post.getCommunityName()), viewerId)
-                        && (post.getPrivacy() == null || "PUBLIC".equals(post.getPrivacy())))
+                        && canViewCommunity(communities.get(post.getCommunityName()), viewerId))
                 .filter(post -> canViewPost(post, viewerId, true))
                 .filter(post -> isVisibleToViewer(post.getAuthorId(), viewerId))
                 .filter(post -> !containsBlockedWord(post, viewerId))

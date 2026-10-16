@@ -67,6 +67,7 @@ export default function Communities() {
   const [openCommunityMenu, setOpenCommunityMenu] = useState('');
   const [leaveGroup, setLeaveGroup] = useState(null);
   const [leavingGroup, setLeavingGroup] = useState(false);
+  const [cancellingRequestId, setCancellingRequestId] = useState('');
   const [membersGroup, setMembersGroup] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
@@ -285,6 +286,22 @@ export default function Communities() {
       setLoadError(requestError.message);
     } finally {
       setLeavingGroup(false);
+    }
+  };
+
+  const cancelCommunityRequest = async (community) => {
+    if (cancellingRequestId) return;
+    setCancellingRequestId(community.id);
+    setLoadError('');
+    try {
+      const updatedCommunity = await leaveCommunity(community.id);
+      setCommunities((current) => current.map((item) => (
+        item.id === updatedCommunity.id ? updatedCommunity : item
+      )));
+    } catch (requestError) {
+      setLoadError(requestError.message);
+    } finally {
+      setCancellingRequestId('');
     }
   };
 
@@ -527,8 +544,8 @@ export default function Communities() {
                       <p className="mt-2 text-[10px] text-slate-400">{community.campus} · {community.memberCount} participantes · {community.visibility === 'PRIVATE' ? 'Privado' : 'Público'}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" disabled={community.requestPending} onClick={() => enterCommunity(community)} className={`rounded-lg px-3 py-2.5 text-xs font-bold transition disabled:cursor-default disabled:opacity-70 ${community.requestPending ? 'bg-slate-100 text-slate-500' : 'bg-[#FFF8E6] text-amber-900 hover:bg-amber-100'}`}>
-                        {community.requestPending ? 'Solicitação enviada' : community.member ? 'Participando' : community.visibility === 'PRIVATE' ? 'Pedir participação' : 'Participar'}
+                      <button type="button" disabled={cancellingRequestId === community.id} onClick={() => (community.requestPending ? cancelCommunityRequest(community) : enterCommunity(community))} className={`group rounded-lg px-3 py-2.5 text-xs font-bold transition disabled:cursor-wait disabled:opacity-70 ${community.requestPending ? 'bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-700' : 'bg-[#FFF8E6] text-amber-900 hover:bg-amber-100'}`}>
+                        {community.requestPending ? (cancellingRequestId === community.id ? 'Cancelando...' : <><span className="group-hover:hidden">Solicitação enviada</span><span className="hidden group-hover:inline">Cancelar solicitação</span></>) : community.member ? 'Participando' : community.visibility === 'PRIVATE' ? 'Pedir participação' : 'Participar'}
                       </button>
                       <button type="button" onClick={() => { setReportGroup(community); setReportReason(''); }} className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200">
                         <Flag className="h-3.5 w-3.5" />Denunciar grupo

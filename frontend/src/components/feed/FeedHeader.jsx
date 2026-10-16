@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bell, ChevronDown, LogOut, Search, User, UserPlus, X } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Search, UserPlus, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import UniLinkLogo from '../branding/UniLinkLogo';
 import {
   acceptFollowRequest, followUser, getNotifications, markAllNotificationsAsRead, markNotificationAsRead, rejectFollowRequest, searchUsers, unfollowUser,
+  getFollowRequests,
 } from '../../utils/authApi';
 
 function formatNotificationTime(createdAt) {
@@ -115,9 +116,13 @@ export default function FeedHeader() {
     let active = true;
     const loadNotifications = async () => {
       try {
-        const items = await getNotifications();
+        const [items, pendingRequests] = await Promise.all([getNotifications(), getFollowRequests()]);
+        const pendingRequesterIds = new Set(pendingRequests.map((request) => request.requesterId));
+        const visibleItems = items.filter((item) => (
+          item.type !== 'PRIVATE_FOLLOW_REQUEST' || pendingRequesterIds.has(item.actorId)
+        ));
         if (active) {
-          setNotifications(items);
+          setNotifications(visibleItems);
           setNotificationsError('');
         }
       } catch (error) {
@@ -358,11 +363,6 @@ export default function FeedHeader() {
 
           {profileMenuOpen && (
             <div role="menu" aria-label="Menu do perfil" className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-xl border border-slate-100 bg-white p-1.5 shadow-lg shadow-slate-900/10">
-              <Link to="/perfil" role="menuitem" onClick={() => setProfileMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                <User className="h-4 w-4 text-slate-500" />
-                Ver perfil
-              </Link>
-              <div className="my-1 border-t border-slate-100" />
               <button type="button" role="menuitem" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50">
                 <LogOut className="h-4 w-4 text-red-600" />
                 Sair

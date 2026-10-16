@@ -342,6 +342,9 @@ export default function Profile() {
       setReportSubmitted(true);
     } catch (requestError) {
       setError(requestError.message);
+      if (requestError.message?.includes('já denunciou')) {
+        setReportDialogOpen(false);
+      }
     } finally {
       setReportSubmitting(false);
     }
@@ -351,7 +354,7 @@ export default function Profile() {
     <div className="large-screen-dashboard min-h-screen bg-[#F4F5F7] pb-24 font-sans text-slate-700 lg:h-dvh lg:overflow-hidden lg:pb-0">
       <FeedHeader />
       <div className="mx-auto mt-4 grid max-w-7xl grid-cols-1 gap-4 px-3 sm:mt-6 sm:gap-6 sm:px-4 lg:h-[calc(100dvh-96px)] lg:grid-cols-12 lg:items-stretch lg:overflow-hidden">
-        <FeedSidebar />
+        <FeedSidebar activeItem="profile" />
 
         <main className="primary-scroll profile-scrollable min-w-0 space-y-4 lg:col-span-6 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
           <section className="overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm">

@@ -44,6 +44,11 @@ public class NotificationService {
         notificationRepository.saveAll(notifications);
     }
 
+    public void deleteFollowRequestNotifications(String targetId, String requesterId) {
+        notificationRepository.deleteByUserIdAndTypeAndActorId(
+                targetId, "PRIVATE_FOLLOW_REQUEST", requesterId);
+    }
+
     public void notifyPostLiked(User actor, Post post) {
         if (actor.getId().equals(post.getAuthorId())) {
             return;

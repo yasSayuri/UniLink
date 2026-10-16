@@ -38,7 +38,7 @@ export default function SavedPosts() {
           </div>
         </main>
       </div>
-      {notification && <div role="status" className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-800 px-4 py-3 text-sm font-semibold text-white shadow-lg">{notification}</div>}
+      {notification && <div role="status" className="dark-notification-toast fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-slate-800 px-4 py-3 text-sm font-semibold text-white shadow-lg">{notification}</div>}
       <FeedMobileNav activeItem="saved" />
     </div>
   );

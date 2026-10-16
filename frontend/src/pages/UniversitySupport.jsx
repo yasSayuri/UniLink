@@ -181,7 +181,7 @@ export default function UniversitySupport() {
               )}
             </section>
           )}
-          {!selectedResource && <section className="flex flex-col items-start gap-4 rounded-xl border border-amber-100 bg-[#FFF8E6] p-4 sm:flex-row sm:items-center sm:justify-between">
+          {!selectedResource && <section className="support-suggestion-banner flex flex-col items-start gap-4 rounded-xl border border-amber-100 bg-[#FFF8E6] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFC72C] text-white"><CircleHelp className="h-5 w-5" /></span><div><h2 className="text-sm font-bold text-slate-800">Não encontrou o que precisa?</h2><p className="text-xs text-slate-500">Sugira uma informação ou categoria para ajudar outros alunos.</p></div></div>
             <button type="button" onClick={openSuggestionModal} className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#FFC72C] px-4 py-2.5 text-xs font-bold text-slate-800 hover:bg-amber-400">Enviar sugestão<Send className="h-4 w-4" /></button>
           </section>}
@@ -195,7 +195,7 @@ export default function UniversitySupport() {
               <div className="space-y-3">
                 {supportNews.map(({ title, hashtag, postCount, icon: Icon }) => (
                   <button key={hashtag} type="button" onClick={() => openResource({ title, hashtag })} className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-slate-50">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] text-amber-800"><Icon className="h-4 w-4" /></span>
+                    <span className="support-news-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] text-amber-800"><Icon className="h-4 w-4" /></span>
                     <span className="min-w-0">
                       <span className="block truncate text-xs font-bold text-slate-800">{title}</span>
                       <span className="mt-1 block text-xs text-slate-500">{title} teve {postCount} {postCount === 1 ? 'nova postagem' : 'novas postagens'}</span>

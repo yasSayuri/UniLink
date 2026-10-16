@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useLayoutEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Feed from './pages/Feed';
@@ -9,6 +9,24 @@ import Settings from './pages/Settings';
 import Communities from './pages/Communities';
 import SavedPosts from './pages/SavedPosts';
 import Events from './pages/Events';
+import { isDarkModeEnabled } from './utils/theme';
+
+function RouteTheme() {
+  const { pathname } = useLocation();
+
+  useLayoutEffect(() => {
+    const isAuthenticationScreen = pathname === '/' || pathname === '/login' || pathname === '/register';
+    let userId = null;
+    try {
+      userId = JSON.parse(localStorage.getItem('unilink.user') || 'null')?.id || null;
+    } catch {
+      // A missing or invalid cached user means no account-specific theme is available.
+    }
+    document.documentElement.classList.toggle('dark', !isAuthenticationScreen && isDarkModeEnabled(userId));
+  }, [pathname]);
+
+  return null;
+}
 
 function App() {
   useEffect(() => {
@@ -25,6 +43,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <RouteTheme />
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         

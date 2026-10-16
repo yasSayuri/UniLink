@@ -1,3 +1,5 @@
+import { applyDarkMode } from './theme';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 export const CONNECTIONS_CHANGED_EVENT = 'unilink:connections-changed';
 
@@ -61,6 +63,7 @@ async function authenticate(path, credentials) {
   });
   localStorage.setItem('unilink.token', result.token);
   localStorage.setItem('unilink.user', JSON.stringify(result.user));
+  applyDarkMode(Boolean(result.user.darkMode), result.user.id);
   return result;
 }
 
@@ -94,10 +97,10 @@ export function changePassword(newPassword, confirmation) {
   });
 }
 
-export function updatePreferences(privateAccount) {
+export function updatePreferences(privateAccount, darkMode) {
   return apiRequest('/api/v1/users/me/settings/preferences', {
     method: 'PATCH',
-    body: JSON.stringify({ privateAccount }),
+    body: JSON.stringify({ privateAccount, darkMode }),
   });
 }
 

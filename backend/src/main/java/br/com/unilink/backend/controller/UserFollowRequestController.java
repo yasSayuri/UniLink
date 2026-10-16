@@ -1,6 +1,7 @@
 package br.com.unilink.backend.controller;
 
 import br.com.unilink.backend.dto.FollowRequestResponse;
+import br.com.unilink.backend.service.NotificationService;
 import br.com.unilink.backend.service.UserFollowRequestService;
 import java.security.Principal;
 import java.util.List;
@@ -17,9 +18,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserFollowRequestController {
 
     private final UserFollowRequestService requestService;
+    private final NotificationService notificationService;
 
-    public UserFollowRequestController(UserFollowRequestService requestService) {
+    public UserFollowRequestController(
+            UserFollowRequestService requestService,
+            NotificationService notificationService) {
         this.requestService = requestService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping
@@ -31,6 +36,7 @@ public class UserFollowRequestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void accept(Principal principal, @PathVariable String requesterId) {
         requestService.accept(principal.getName(), requesterId);
+        notificationService.deleteFollowRequestNotifications(principal.getName(), requesterId);
     }
 
     @PostMapping("/{requesterId}/approve")
@@ -43,5 +49,6 @@ public class UserFollowRequestController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void reject(Principal principal, @PathVariable String requesterId) {
         requestService.reject(principal.getName(), requesterId);
+        notificationService.deleteFollowRequestNotifications(principal.getName(), requesterId);
     }
 }
